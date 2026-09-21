@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import org.json.JSONObject
+import java.net.URI
 
 private const val ALT_REPO_INDEX =
     "https://raw.githubusercontent.com/Magisk-Modules-Alt-Repo/json/main/modules.json"
@@ -94,6 +95,21 @@ data class StoreModule(
     val notesUrl: String,
     val propUrl: String,
     val lastUpdate: Long,
+    val description: String = "",
+    val author: String = "",
+    val version: String = "",
+    val versionCode: Int = -1,
+    val readmeUrl: String = "",
+    val sourceUrl: String = "",
+    val iconUrls: List<String> = emptyList(),
+)
+
+data class StoreModuleDetails(
+    val module: StoreModule,
+    val description: String,
+    val readme: String,
+    val iconUrls: List<String>,
+    val screenshotUrls: List<String>,
 )
 
 data class ModuleStoreState(
@@ -188,6 +204,27 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
         }
     }
 
+    suspend fun loadDetails(module: StoreModule): StoreModuleDetails = withContext(Dispatchers.IO) {
+        val readme = module.readmeUrl.takeIf(String::isNotBlank)?.let { url ->
+            runCatching { ServiceLocator.networkService.fetchString(url) }.getOrDefault("")
+        }.orEmpty()
+        val readmeImages = extractImageUrls(readme, module.readmeUrl)
+        val iconUrls = (module.iconUrls + readmeImages.filter(::isLikelyIcon))
+            .distinct()
+        val screenshotUrls = readmeImages
+            .filterNot(::isBadge)
+            .filterNot { it in iconUrls }
+            .distinct()
+            .take(MAX_SCREENSHOTS)
+        StoreModuleDetails(
+            module = module,
+            description = module.description.ifBlank { readmeSummary(readme) },
+            readme = readme,
+            iconUrls = iconUrls,
+            screenshotUrls = screenshotUrls,
+        )
+    }
+
     private fun parseIndex(raw: String, repository: ModuleRepository): List<StoreModule> = when (
         repository.format
     ) {
@@ -214,6 +251,19 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
                         notesUrl = item.optString("notes_url").trim(),
                         propUrl = item.optString("prop_url").trim(),
                         lastUpdate = item.optLong("last_update", 0L),
+                        readmeUrl = item.optString("notes_url").trim(),
+                        sourceUrl = githubRepositoryUrl(
+                            item.optString("notes_url").trim().ifBlank {
+                                item.optString("prop_url").trim()
+                            }
+                        ).orEmpty(),
+                        iconUrls = githubIconUrls(
+                            githubRepositoryUrl(
+                                item.optString("notes_url").trim().ifBlank {
+                                    item.optString("prop_url").trim()
+                                }
+                            ).orEmpty()
+                        ),
                     )
                 )
             }
@@ -231,6 +281,8 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
                 if (id.isEmpty() || zipUrl.isEmpty()) continue
 
                 val track = item.optJSONObject("track")
+                val sourceUrl = track?.optString("source")?.trim().orEmpty()
+                val readmeUrl = item.optString("readme").trim()
                 val notesUrl = item.optString("readme").trim().ifBlank {
                     track?.optString("homepage")?.trim().orEmpty()
                 }
@@ -248,6 +300,15 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
                         notesUrl = notesUrl,
                         propUrl = propUrl,
                         lastUpdate = version.optDouble("timestamp", 0.0).toTimestampMillis(),
+                        description = item.optString("description").trim(),
+                        author = item.optString("author").trim(),
+                        version = item.optString("version").trim(),
+                        versionCode = item.optInt("versionCode", -1),
+                        readmeUrl = readmeUrl,
+                        sourceUrl = sourceUrl,
+                        iconUrls = githubIconUrls(
+                            githubRepositoryUrl(sourceUrl).orEmpty()
+                        ),
                     )
                 )
             }
@@ -303,6 +364,87 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
             .joinToString(" ") { word ->
                 word.replaceFirstChar { char -> char.uppercase() }
             }
+
+    private fun extractImageUrls(markdown: String, baseUrl: String): List<String> {
+        val markdownImages = Regex("!\\[[^]]*]\\(([^)]+)\\)")
+            .findAll(markdown)
+            .map { it.groupValues[1].substringBefore(' ').trim('<', '>') }
+        val htmlImages = Regex("<img[^>]+src=[\\\"']([^\\\"']+)", RegexOption.IGNORE_CASE)
+            .findAll(markdown)
+            .map { it.groupValues[1] }
+        return (markdownImages + htmlImages)
+            .mapNotNull { resolveUrl(baseUrl, it) }
+            .filter { it.startsWith("https://") || it.startsWith("http://") }
+            .distinct()
+            .toList()
+    }
+
+    private fun readmeSummary(markdown: String): String {
+        return markdown.lines()
+            .asSequence()
+            .map(String::trim)
+            .dropWhile { it.isEmpty() || it.startsWith("#") || it.startsWith("!") || isBadge(it) }
+            .takeWhile { it.isNotEmpty() }
+            .joinToString(" ")
+            .replace(Regex("\\[([^]]+)]\\([^)]*\\)"), "$1")
+            .replace(Regex("[`*_]"), "")
+            .trim()
+            .take(MAX_DESCRIPTION_LENGTH)
+    }
+
+    private fun isBadge(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains("shields.io") ||
+            lower.contains("badge") ||
+            lower.contains("badgen.net")
+    }
+
+    private fun isLikelyIcon(url: String): Boolean {
+        val path = runCatching { URI(url).path.orEmpty() }.getOrDefault(url).lowercase()
+        return path.contains("icon") || path.contains("logo")
+    }
+
+    private fun resolveUrl(baseUrl: String, url: String): String? {
+        if (url.startsWith("data:") || url.startsWith("//")) return null
+        return runCatching {
+            if (url.startsWith("http://") || url.startsWith("https://")) url
+            else URI(baseUrl).resolve(url).toString()
+        }.getOrNull()
+    }
+
+    private fun githubRepositoryUrl(url: String): String? {
+        val match = Regex("(?:github\\.com|raw\\.githubusercontent\\.com)/([^/]+)/([^/#?]+)")
+            .find(url) ?: return null
+        val owner = match.groupValues[1]
+        val repo = match.groupValues[2]
+            .removeSuffix(".git")
+            .takeIf { it !in setOf("raw", "blob", "tree") }
+            ?: return null
+        return "https://github.com/$owner/$repo"
+    }
+
+    private fun githubIconUrls(repositoryUrl: String): List<String> {
+        if (repositoryUrl.isBlank()) return emptyList()
+        val path = repositoryUrl.removePrefix("https://github.com/").trimEnd('/')
+        val iconPaths = listOf(
+            "icon.png",
+            "icon.webp",
+            "icon.jpg",
+            "icon.jpeg",
+            ".github/icon.png",
+            "assets/icon.png",
+        )
+        return listOf("main", "master").flatMap { branch ->
+            iconPaths.map { icon ->
+                "https://raw.githubusercontent.com/$path/$branch/$icon"
+            }
+        }
+    }
+
+    private companion object {
+        const val MAX_SCREENSHOTS = 8
+        const val MAX_DESCRIPTION_LENGTH = 600
+    }
 }
 
 @Parcelize

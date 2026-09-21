@@ -14,6 +14,12 @@
     <string name="module_store_browse_only">Browsing works without root. You need root to install modules.</string>
     <string name="module_store_install">Install</string>
     <string name="module_store_install_root">Install (root)</string>
+    <string name="module_store_details">Details</string>
+    <string name="module_store_about">About this module</string>
+    <string name="module_store_screenshots">Screenshots</string>
+    <string name="module_store_author">By %1$s</string>
+    <string name="module_store_version_unknown">Version unavailable</string>
+    <string name="module_store_description_unavailable">No description was published by the module repository.</string>
     <string name="module_store_root_required_title">Root required</string>
     <string name="module_store_root_required_message">u need root for installing modules</string>
     <string name="module_store_stars">%1$d stars</string>
@@ -41,7 +47,7 @@
     <string name="not_installed">Not Installed</string>
     <string name="hide">Hide</string>
     <string name="home_package">Package</string>
-    <string name="home_app_title">h3cknn&apos;s Magisk</string>
+    <string name="home_app_title">h3cknn\'s Magisk</string>
     <string name="reinstall">Reinstall</string>
     <string name="home_notice_content">Download Magisk ONLY from the official GitHub page. Files from unknown sources can be malicious!</string>
     <string name="home_support_title">Support Us</string>
@@ -239,14 +245,14 @@
     <string name="isolate_summary">Each root session will have its own isolated namespace</string>
 
     <!--Notifications-->
-    <string name="update_channel">h3cknn&apos;s Magisk updates</string>
+    <string name="update_channel">h3cknn\'s Magisk updates</string>
     <string name="progress_channel">Progress notifications</string>
     <string name="updated_channel">Update complete</string>
     <string name="su_notification_channel">Superuser Notifications</string>
     <string name="download_complete">Download complete</string>
     <string name="download_file_error">Error downloading file</string>
-    <string name="magisk_update_title">h3cknn&apos;s Magisk update available!</string>
-    <string name="updated_title">h3cknn&apos;s Magisk updated</string>
+    <string name="magisk_update_title">h3cknn\'s Magisk update available!</string>
+    <string name="updated_title">h3cknn\'s Magisk updated</string>
     <string name="updated_text">Tap to open app</string>
     <string name="su_notification_granted_title">Superuser Granted</string>
     <string name="su_notification_denied_title">Superuser Denied</string>
