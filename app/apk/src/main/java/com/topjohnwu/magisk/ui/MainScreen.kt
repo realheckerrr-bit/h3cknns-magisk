@@ -39,13 +39,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.VMFactory
 import com.topjohnwu.magisk.core.Info
-import com.topjohnwu.magisk.core.model.module.LocalModule
 import com.topjohnwu.magisk.ui.home.HomeScreen
 import com.topjohnwu.magisk.ui.home.HomeViewModel
 import com.topjohnwu.magisk.ui.install.InstallViewModel
 import com.topjohnwu.magisk.ui.log.LogScreen
 import com.topjohnwu.magisk.ui.log.LogViewModel
 import com.topjohnwu.magisk.ui.module.ModuleScreen
+import com.topjohnwu.magisk.ui.module.ModuleStoreScreen
+import com.topjohnwu.magisk.ui.module.ModuleStoreViewModel
 import com.topjohnwu.magisk.ui.module.ModuleViewModel
 import com.topjohnwu.magisk.ui.navigation.CollectNavEvents
 import com.topjohnwu.magisk.ui.navigation.LocalNavigator
@@ -77,7 +78,8 @@ fun MainScreen(
         Tab.entries.filter { tab ->
             when (tab) {
                 Tab.SUPERUSER -> Info.showSuperUser
-                Tab.MODULES -> Info.env.isActive && LocalModule.loaded()
+                // The module center also contains the public store and must be usable without root.
+                Tab.MODULES -> true
                 else -> true
             }
         }
@@ -174,15 +176,31 @@ fun MainScreen(
                     LogScreen(vm)
                 }
                 Tab.MODULES -> {
-                    val vm: ModuleViewModel = viewModel(factory = VMFactory)
-                    LaunchedEffect(isCurrentPage) {
-                        if (isCurrentPage) vm.startLoading()
+                    var showStore by rememberSaveable { mutableStateOf(!Info.env.isActive) }
+                    if (showStore) {
+                        val storeVm: ModuleStoreViewModel = viewModel(factory = VMFactory)
+                        LaunchedEffect(showStore, isCurrentPage) {
+                            if (showStore && isCurrentPage) storeVm.startLoading()
+                        }
+                        ModuleStoreScreen(
+                            viewModel = storeVm,
+                            onBack = if (Info.env.isActive) ({ showStore = false }) else null,
+                        )
+                    } else {
+                        val vm: ModuleViewModel = viewModel(factory = VMFactory)
+                        LaunchedEffect(isCurrentPage) {
+                            if (isCurrentPage) vm.startLoading()
+                        }
+                        CollectNavEvents(vm, navigator)
+                        ModuleScreen(
+                            viewModel = vm,
+                            onRegisterFab = { moduleFabAction = it },
+                            onOpenStore = {
+                                moduleFabAction = null
+                                showStore = true
+                            },
+                        )
                     }
-                    CollectNavEvents(vm, navigator)
-                    ModuleScreen(
-                        viewModel = vm,
-                        onRegisterFab = { moduleFabAction = it },
-                    )
                 }
                 Tab.SETTINGS -> {
                     val vm: SettingsViewModel = viewModel(factory = VMFactory)

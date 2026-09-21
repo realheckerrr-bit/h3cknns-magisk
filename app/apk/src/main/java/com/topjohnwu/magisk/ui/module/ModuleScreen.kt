@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -89,6 +90,7 @@ fun ModuleScreen(
     viewModel: ModuleViewModel,
     modifier: Modifier = Modifier,
     onRegisterFab: (((() -> Unit)?) -> Unit)? = null,
+    onOpenStore: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -153,6 +155,16 @@ fun ModuleScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(CoreR.string.modules)) },
+                actions = {
+                    if (onOpenStore != null) {
+                        androidx.compose.material3.IconButton(onClick = onOpenStore) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Outlined.Storefront,
+                                contentDescription = stringResource(CoreR.string.module_store_title),
+                            )
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior
             )
         },

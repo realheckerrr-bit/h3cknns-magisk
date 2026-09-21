@@ -11,6 +11,7 @@ import com.topjohnwu.magisk.ui.install.InstallViewModel
 import com.topjohnwu.magisk.ui.log.LogViewModel
 import com.topjohnwu.magisk.ui.module.ActionViewModel
 import com.topjohnwu.magisk.ui.module.ModuleViewModel
+import com.topjohnwu.magisk.ui.module.ModuleStoreViewModel
 import com.topjohnwu.magisk.ui.settings.SettingsViewModel
 import com.topjohnwu.magisk.ui.superuser.SuperuserViewModel
 import com.topjohnwu.magisk.ui.surequest.SuRequestViewModel
@@ -25,5 +26,6 @@ val VMFactory: ViewModelProvider.Factory = viewModelFactory {
     initializer { FlashViewModel() }
     initializer { ActionViewModel() }
     initializer { ModuleViewModel() }
+    initializer { ModuleStoreViewModel() }
     initializer { SettingsViewModel() }
 }

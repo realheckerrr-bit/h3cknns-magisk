@@ -2,11 +2,27 @@
 
     <!--Sections-->
     <string name="modules">Modules</string>
+    <string name="module_store_title">Module store</string>
+    <string name="module_store_source">Magisk Modules Alt-Repo</string>
+    <string name="module_store_search">Search modules</string>
+    <string name="module_store_root_ready">Root access is available. Downloads can be installed after they finish.</string>
+    <string name="module_store_browse_only">Browsing works without root. You need root to install modules.</string>
+    <string name="module_store_install">Install</string>
+    <string name="module_store_install_root">Install (root)</string>
+    <string name="module_store_root_required_title">Root required</string>
+    <string name="module_store_root_required_message">u need root for installing modules</string>
+    <string name="module_store_stars">%1$d stars</string>
+    <string name="module_store_empty">No modules match your search.</string>
+    <string name="module_store_load_failed">Could not load the module catalog.</string>
     <string name="superuser">Superuser</string>
     <string name="logs">Logs</string>
     <string name="settings">Settings</string>
     <string name="install">Install</string>
     <string name="section_home">Home</string>
+    <string name="back">Back</string>
+    <string name="refresh">Refresh</string>
+    <string name="retry">Retry</string>
+    <string name="ok">OK</string>
     <string name="section_theme">Themes</string>
     <string name="denylist">DenyList</string>
 

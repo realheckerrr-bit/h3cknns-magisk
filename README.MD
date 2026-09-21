@@ -1,5 +1,17 @@
 ![](docs/images/logo.png)
 
+# h3cknn's Magisk
+
+This repository is a maintained fork of [topjohnwu/Magisk](https://github.com/topjohnwu/Magisk),
+branded as **h3cknn's Magisk**. Upstream source, copyright notices, and the GPL-3.0 license are
+preserved. Fork-specific work is documented in `docs/h3cknn_fork.md`.
+
+The fork adds a Material 3 module center. Its public catalog is loaded from the moderated
+[Magisk Modules Alt-Repo index](https://github.com/Magisk-Modules-Alt-Repo/json), because the old
+centralized official Magisk module repository was discontinued upstream. Catalog browsing does not
+need root; installing a module is blocked with a clear root-required message until root access is
+available.
+
 [![Downloads](https://img.shields.io/badge/dynamic/json?color=green&label=Downloads&query=totalString&url=https%3A%2F%2Fraw.githubusercontent.com%2Ftopjohnwu%2Fmagisk-files%2Fcount%2Fcount.json&cacheSeconds=1800)](https://raw.githubusercontent.com/topjohnwu/magisk-files/count/count.json)
 
 #### This is not an officially supported Google product
