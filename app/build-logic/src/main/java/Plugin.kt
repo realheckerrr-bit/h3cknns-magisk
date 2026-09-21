@@ -29,6 +29,10 @@ object Config {
     // Properties from gradle.properties, should always exist
     val versionCode: Int get() = get("magisk.versionCode")!!.toInt()
     val stubVersion: String get() = get("magisk.stubVersion")!!
+
+    // The manager has its own update/version track, independent from Magisk.
+    val appVersion: String get() = get("appVersion") ?: version
+    val appVersionCode: Int get() = get("appVersionCode")?.toInt() ?: versionCode
 }
 
 fun Project.rootFile(path: String): File {

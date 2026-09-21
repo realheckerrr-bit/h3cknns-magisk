@@ -210,55 +210,12 @@ private fun CustomizationSection(
 private fun AppSettingsSection(
     modifier: Modifier = Modifier
 ) {
-    val resources = LocalResources.current
-
     SmallTitle(text = stringResource(CoreR.string.home_app_title))
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        // Update Channel
-        val updateChannelEntries = remember {
-            resources.getStringArray(CoreR.array.update_channel).toList()
-        }
-        var updateChannel by remember {
-            mutableIntStateOf(Config.updateChannelIndex)
-        }
-        var showUrlDialog by remember { mutableStateOf(false) }
-
-        SettingsDropdown(
-            title = stringResource(CoreR.string.settings_update_channel_title),
-            items = updateChannelEntries,
-            selectedIndex = updateChannel,
-            onSelectedIndexChange = { index ->
-                updateChannel = index
-                Config.updateChannel = index
-                Info.resetUpdate()
-                if (index == Config.Value.CUSTOM_CHANNEL && Config.customChannelUrl.isBlank()) {
-                    showUrlDialog = true
-                }
-            }
-        )
-
-        // Update Channel URL (for custom channel)
-        if (updateChannel == Config.Value.CUSTOM_CHANNEL) {
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-            if (showUrlDialog) {
-                UpdateChannelUrlDialog(
-                    onDismiss = { showUrlDialog = false }
-                )
-            }
-            SettingsArrow(
-                title = stringResource(CoreR.string.settings_update_custom),
-                summary = Config.customChannelUrl.ifBlank { null },
-                onClick = { showUrlDialog = true }
-            )
-        }
-
         HorizontalDivider(
             modifier = Modifier.padding(horizontal = 16.dp),
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -628,37 +585,6 @@ private fun SuperuserSection(
 }
 
 // --- Dialogs ---
-
-@Composable
-private fun UpdateChannelUrlDialog(
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var url by rememberSaveable { mutableStateOf(Config.customChannelUrl) }
-
-    MagiskDialog(
-        modifier = modifier,
-        onDismissRequest = onDismiss,
-        title = stringResource(CoreR.string.settings_update_custom_msg),
-        confirmText = stringResource(android.R.string.ok),
-        onConfirm = {
-            Config.customChannelUrl = url
-            Info.resetUpdate()
-            onDismiss()
-        },
-        dismissText = stringResource(android.R.string.cancel),
-        onDismiss = onDismiss,
-    ) {
-        Column(modifier = Modifier.padding(top = 8.dp)) {
-            OutlinedTextField(
-                value = url,
-                onValueChange = { url = it },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
 
 @Composable
 private fun DownloadPathDialog(

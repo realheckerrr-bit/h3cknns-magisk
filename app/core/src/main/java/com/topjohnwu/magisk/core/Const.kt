@@ -2,7 +2,6 @@ package com.topjohnwu.magisk.core
 
 import android.os.Build
 import android.os.Process
-import com.topjohnwu.magisk.core.BuildConfig.APP_VERSION_CODE
 
 @Suppress("DEPRECATION")
 object Const {
@@ -44,6 +43,8 @@ object Const {
 
         const val GITHUB_API_URL = "https://api.github.com/"
         const val GITHUB_PAGE_URL = "https://topjohnwu.github.io/magisk-files/"
+        const val APP_GITHUB_OWNER = "realheckerrr-bit"
+        const val APP_GITHUB_REPO = "h3cknns-magisk"
         const val INVALID_URL = "https://example.com/"
     }
 

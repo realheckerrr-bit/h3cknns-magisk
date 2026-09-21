@@ -1,12 +1,7 @@
 package com.topjohnwu.magisk.core.repository
 
 import com.topjohnwu.magisk.core.BuildConfig
-import com.topjohnwu.magisk.core.Config
-import com.topjohnwu.magisk.core.Config.Value.BETA_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.CUSTOM_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.DEBUG_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.DEFAULT_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.STABLE_CHANNEL
+import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.data.GithubApiServices
 import com.topjohnwu.magisk.core.data.RawUrl
@@ -22,38 +17,54 @@ class NetworkService(
     private val raw: RawUrl,
     private val api: GithubApiServices,
 ) {
+    /**
+     * Fetch manager updates only from the h3cknn repository.
+     * Magisk core releases are fetched separately by [fetchUpdate].
+     */
     suspend fun fetchUpdate() = safe {
-        var info = when (Config.updateChannel) {
-            DEFAULT_CHANNEL -> if (BuildConfig.DEBUG) fetchDebugUpdate() else fetchStableUpdate()
-            STABLE_CHANNEL -> fetchStableUpdate()
-            BETA_CHANNEL -> fetchBetaUpdate()
-            DEBUG_CHANNEL -> fetchDebugUpdate()
-            CUSTOM_CHANNEL -> fetchCustomUpdate(Config.customChannelUrl)
-            else -> throw IllegalArgumentException()
-        }
-        if (info.versionCode < Info.env.versionCode &&
-            Config.updateChannel == DEFAULT_CHANNEL &&
-            !BuildConfig.DEBUG
-        ) {
-            Config.updateChannel = BETA_CHANNEL
-            info = fetchBetaUpdate()
-        }
-        info
+        findAppRelease().asAppInfo()
     }
 
+    /** Fetch release notes for a Magisk core version from the official Magisk repo. */
     suspend fun fetchUpdate(version: Int) = safe {
-        findRelease { it.versionCode == version }.asInfo()
+        findMagiskRelease { it.versionCode == version }.asInfo()
     }
 
-    // Keep going through all release pages until we find a match
-    private suspend inline fun findRelease(predicate: (Release) -> Boolean): Release? {
+    private suspend fun findAppRelease(): Release? {
+        return findRelease(
+            owner = Const.Url.APP_GITHUB_OWNER,
+            repo = Const.Url.APP_GITHUB_REPO,
+            releaseFilter = {
+                parseAppVersion(it.tag) != null &&
+                    it.assets.any { asset -> asset.name == "app-release.apk" }
+            },
+            predicate = { true },
+        )
+    }
+
+    private suspend fun findMagiskRelease(predicate: (Release) -> Boolean): Release? {
+        return findRelease(
+            owner = "topjohnwu",
+            repo = "Magisk",
+            releaseFilter = {
+                it.tag.isNotEmpty() && (it.tag[0] == 'v' || it.tag.startsWith("canary"))
+            },
+            predicate = predicate,
+        )
+    }
+
+    // Keep going through all release pages until we find a match.
+    private suspend fun findRelease(
+        owner: String,
+        repo: String,
+        releaseFilter: (Release) -> Boolean,
+        predicate: (Release) -> Boolean,
+    ): Release? {
         var page = 1
         while (true) {
-            val response = api.fetchReleases(page = page)
+            val response = api.fetchReleases(owner = owner, repo = repo, page = page)
             val releases = response.body() ?: throw HttpException(response)
-            // Remove all non Magisk releases
-            releases.removeAll { it.tag[0] != 'v' && !it.tag.startsWith("canary") }
-            // Make sure it's sorted correctly
+            releases.removeAll { !releaseFilter(it) }
             releases.sortByDescending { it.createdTime }
             releases.find(predicate)?.let { return it }
             if (response.headers()["link"]?.contains("rel=\"next\"", ignoreCase = true) == true) {
@@ -72,6 +83,22 @@ class NetworkService(
         return if (this == null) UpdateInfo()
         else if (tag[0] == 'v') asPublicInfo(selector)
         else asCanaryInfo(selector)
+    }
+
+    private fun Release?.asAppInfo(): UpdateInfo {
+        val release = this ?: return UpdateInfo()
+        val version = parseAppVersion(release.tag) ?: return UpdateInfo()
+        val assetName = if (BuildConfig.DEBUG) "app-debug.apk" else "app-release.apk"
+        val asset = release.assets.find { it.name == assetName }
+            ?: release.assets.find { it.name == "app-release.apk" }
+            ?: return UpdateInfo()
+        val date = dateFormat.format(release.createdTime)
+        return UpdateInfo(
+            version = version.name,
+            versionCode = version.code,
+            link = asset.url,
+            note = "## $date ${release.name}\n\n${release.body}"
+        )
     }
 
     private inline fun Release.asPublicInfo(selector: (ReleaseAssets) -> Boolean): UpdateInfo {
@@ -94,20 +121,19 @@ class NetworkService(
         )
     }
 
-    // Version number: debug == beta >= stable
+    private data class AppVersion(
+        val name: String,
+        val code: Int,
+    )
 
-    // Find the latest non-prerelease
-    private suspend fun fetchStableUpdate() = api.fetchLatestRelease().asInfo()
-
-    // Find the latest release, regardless whether it's prerelease
-    private suspend fun fetchBetaUpdate() = findRelease { true }.asInfo()
-
-    private suspend fun fetchDebugUpdate() =
-        findRelease { true }.asInfo { it.name == "app-debug.apk" }
-
-    private suspend fun fetchCustomUpdate(url: String): UpdateInfo {
-        val info = raw.fetchUpdateJson(url).magisk
-        return info.let { it.copy(note = raw.fetchString(it.note)) }
+    private fun parseAppVersion(tag: String): AppVersion? {
+        val match = APP_TAG_PATTERN.matchEntire(tag) ?: return null
+        val major = match.groupValues[1].toInt()
+        val minor = match.groupValues[2].toInt()
+        val patch = match.groupValues[3].toInt()
+        // Keep APK version codes above the old Magisk-based manager builds.
+        val code = (APP_VERSION_CODE_BASE + major) * 10_000 + minor * 100 + patch
+        return AppVersion("$major.$minor.$patch", code)
     }
 
     private inline fun <T> safe(factory: () -> T): T? {
@@ -134,4 +160,9 @@ class NetworkService(
     suspend fun fetchFile(url: String) = wrap { raw.fetchFile(url) }
     suspend fun fetchString(url: String) = wrap { raw.fetchString(url) }
     suspend fun fetchModuleJson(url: String) = wrap { raw.fetchModuleJson(url) }
+
+    private companion object {
+        val APP_TAG_PATTERN = Regex("^h3cknn-v(\\d+)\\.(\\d+)\\.(\\d+)$")
+        const val APP_VERSION_CODE_BASE = 4
+    }
 }

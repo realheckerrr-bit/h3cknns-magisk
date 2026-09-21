@@ -268,8 +268,10 @@ fun Project.setupAppCommon() {
                 this.outFolder.set(layout.buildDirectory.dir("outputs/apk/${variant.name}"))
                 // Always add a transformation to set comments on the APK
                 this.transformations.add {
-                    it.eocdComment = ("version=${Config.version}\n" +
-                            "versionCode=${Config.versionCode}\n" +
+                    it.eocdComment = ("version=${Config.appVersion}\n" +
+                            "versionCode=${Config.appVersionCode}\n" +
+                            "magiskVersion=${Config.version}\n" +
+                            "magiskVersionCode=${Config.versionCode}\n" +
                             "stubVersion=${Config.stubVersion}\n").toByteArray()
                 }
             }
@@ -287,8 +289,8 @@ fun Project.setupMainApk() {
         defaultConfig {
             applicationId = "com.topjohnwu.magisk"
             vectorDrawables.useSupportLibrary = true
-            versionName = Config.version
-            versionCode = Config.versionCode
+            versionName = Config.appVersion
+            versionCode = Config.appVersionCode
             ndk {
                 abiFilters += ABI_SUPPORT_LIST
                 debugSymbolLevel = "FULL"

@@ -69,7 +69,7 @@ class HomeViewModel(
         }
 
         fun computeManagerInstalledVersion() =
-            "${BuildConfig.APP_VERSION_NAME} (${BuildConfig.APP_VERSION_CODE})" +
+            "${BuildConfig.MANAGER_VERSION_NAME} (${BuildConfig.MANAGER_VERSION_CODE})" +
                 if (BuildConfig.DEBUG) " (D)" else ""
     }
 
@@ -91,11 +91,10 @@ class HomeViewModel(
             )
         }
         Info.fetchUpdate(svc)?.apply {
-            val isDebug = Config.updateChannel == Config.Value.DEBUG_CHANNEL
             _uiState.update {
                 it.copy(
-                    appState = if (BuildConfig.APP_VERSION_CODE < versionCode) State.OUTDATED else State.UP_TO_DATE,
-                    managerRemoteVersion = "$version ($versionCode)" + if (isDebug) " (D)" else ""
+                    appState = if (BuildConfig.MANAGER_VERSION_CODE < versionCode) State.OUTDATED else State.UP_TO_DATE,
+                    managerRemoteVersion = "$version ($versionCode)" + if (BuildConfig.DEBUG) " (D)" else ""
                 )
             }
         } ?: run {
