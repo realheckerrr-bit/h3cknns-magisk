@@ -1,5 +1,7 @@
 # h3cknn's Magisk fork
 
+![h3cknn's Magisk icon](images/h3cknn_magisk_icon.png)
+
 This is a GitHub fork of `topjohnwu/Magisk`, not a standalone copy. The upstream remote and fork
 relationship are retained so upstream security and compatibility work can be merged deliberately.
 
