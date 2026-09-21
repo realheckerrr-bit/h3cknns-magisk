@@ -587,12 +587,18 @@ private fun RemoteModuleImage(
 ) {
     val bitmap by produceState<Bitmap?>(initialValue = null, key1 = urls) {
         value = withContext(Dispatchers.IO) {
-            urls.asSequence().mapNotNull { url ->
-                runCatching {
-                    val bytes = ServiceLocator.networkService.fetchFileBytes(url)
-                    decodeRemoteBitmap(bytes)
-                }.getOrNull()
-            }.firstOrNull()
+            var decoded: Bitmap? = null
+            for (url in urls) {
+                try {
+                    decoded = decodeRemoteBitmap(
+                        ServiceLocator.networkService.fetchFileBytes(url)
+                    )
+                    if (decoded != null) break
+                } catch (_: Exception) {
+                    // Try the next GitHub mirror/path candidate.
+                }
+            }
+            decoded
         }
     }
     Box(
