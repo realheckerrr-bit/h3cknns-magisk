@@ -589,7 +589,7 @@ private fun RemoteModuleImage(
         value = withContext(Dispatchers.IO) {
             urls.asSequence().mapNotNull { url ->
                 runCatching {
-                    val bytes = ServiceLocator.networkService.fetchFile(url).bytes()
+                    val bytes = ServiceLocator.networkService.fetchFileBytes(url)
                     decodeRemoteBitmap(bytes)
                 }.getOrNull()
             }.firstOrNull()

@@ -158,6 +158,7 @@ class NetworkService(
 
     // Fetch files
     suspend fun fetchFile(url: String) = wrap { raw.fetchFile(url) }
+    suspend fun fetchFileBytes(url: String) = wrap { raw.fetchFile(url).bytes() }
     suspend fun fetchString(url: String) = wrap { raw.fetchString(url) }
     suspend fun fetchModuleJson(url: String) = wrap { raw.fetchModuleJson(url) }
 
