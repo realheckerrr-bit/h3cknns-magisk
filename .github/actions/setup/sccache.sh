@@ -21,17 +21,20 @@ if [ $RUNNER_OS = "macOS" ]; then
 elif [ $RUNNER_OS = "Linux" ]; then
   install_from_gh x86_64-unknown-linux-musl /usr/local/bin sccache
 elif [ $RUNNER_OS = "Windows" ]; then
-  # Extract the Windows binary from a file archive. Streaming the executable
-  # through tar can produce an invalid Win32 image under Git Bash.
+  # Use the zip archive because Git Bash tar can fail to extract the Windows
+  # release archive on hosted runners.
   ver=$(get_sccache_ver)
   tmp_dir=$(mktemp -d)
-  archive="$tmp_dir/sccache.tar.gz"
-  dest="$USERPROFILE/.cargo/bin/sccache.exe"
-  url="https://github.com/mozilla/sccache/releases/download/${ver}/sccache-${ver}-x86_64-pc-windows-msvc.tar.gz"
-  curl -L "$url" -o "$archive"
-  tar xzf "$archive" -C "$tmp_dir"
+  archive="$tmp_dir/sccache.zip"
+  dest="$(cygpath -u "$USERPROFILE")/.cargo/bin/sccache.exe"
+  url="https://github.com/mozilla/sccache/releases/download/${ver}/sccache-${ver}-x86_64-pc-windows-msvc.zip"
+  curl -fL --retry 3 --retry-delay 2 "$url" -o "$archive"
+  powershell.exe -NoProfile -NonInteractive -Command \
+    "Expand-Archive -LiteralPath '$(cygpath -w "$archive")' -DestinationPath '$(cygpath -w "$tmp_dir")' -Force"
   mkdir -p "$(dirname "$dest")"
   cp "$tmp_dir"/sccache-*/sccache.exe "$dest"
   chmod +x "$dest"
+  export PATH="$(dirname "$dest"):$PATH"
+  echo "$(cygpath -w "$(dirname "$dest")")" >> "$GITHUB_PATH"
   rm -rf "$tmp_dir"
 fi
