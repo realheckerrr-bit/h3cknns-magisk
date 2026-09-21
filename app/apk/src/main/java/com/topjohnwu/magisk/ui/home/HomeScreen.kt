@@ -795,7 +795,11 @@ private fun SupportCard(
 }
 
 private data class LinkInfo(val label: Int, val icon: Int, val url: String)
-private data class DeveloperInfo(val name: String, val links: List<LinkInfo>)
+private data class DeveloperInfo(
+    val name: String,
+    val links: List<LinkInfo>,
+    val role: Int? = null,
+)
 
 private val developers = listOf(
     DeveloperInfo("topjohnwu", listOf(
@@ -819,6 +823,13 @@ private val developers = listOf(
         LinkInfo(CoreR.string.twitter, CoreR.drawable.ic_twitter, "https://x.com/canyie2977"),
         LinkInfo(CoreR.string.github, CoreR.drawable.ic_github, "https://github.com/canyie"),
     )),
+    DeveloperInfo(
+        name = "h3cknn",
+        links = listOf(
+            LinkInfo(CoreR.string.github, CoreR.drawable.ic_github, "https://github.com/realheckerrr-bit"),
+        ),
+        role = CoreR.string.developer_mod_dev,
+    ),
 )
 
 @Composable
@@ -840,10 +851,19 @@ private fun DevelopersCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "@${dev.name}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Column {
+                        Text(
+                            text = "@${dev.name}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        dev.role?.let { role ->
+                            Text(
+                                text = stringResource(role),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
