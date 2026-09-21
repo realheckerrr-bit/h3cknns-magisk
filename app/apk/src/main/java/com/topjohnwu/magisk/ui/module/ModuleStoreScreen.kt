@@ -28,6 +28,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,6 +69,16 @@ fun ModuleStoreScreen(
     val rooted = Info.isRooted
     var showRootDialog by remember { mutableStateOf(false) }
     val modules = viewModel.filteredModules(state)
+    val selectedRepository = MODULE_REPOSITORIES.firstOrNull {
+        it.id == state.selectedRepositoryId
+    }
+    val selectedRepositoryName = selectedRepository?.name
+        ?: stringResource(CoreR.string.module_store_all_repositories)
+    val repositoryModuleCount = if (state.selectedRepositoryId == ALL_MODULE_REPOSITORIES) {
+        state.modules.distinctBy { it.id.lowercase() }.size
+    } else {
+        state.modules.count { it.repositoryId == state.selectedRepositoryId }
+    }
 
     if (showRootDialog) {
         AlertDialog(
@@ -89,7 +101,7 @@ fun ModuleStoreScreen(
                     Column {
                         Text(stringResource(CoreR.string.module_store_title))
                         Text(
-                            stringResource(CoreR.string.module_store_source),
+                            selectedRepositoryName,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -135,6 +147,11 @@ fun ModuleStoreScreen(
                 label = { Text(stringResource(CoreR.string.module_store_search)) },
             )
 
+            RepositorySelector(
+                selectedRepositoryId = state.selectedRepositoryId,
+                onSelect = viewModel::selectRepository,
+            )
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,25 +160,47 @@ fun ModuleStoreScreen(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 ),
             ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Outlined.Storefront,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Storefront,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                        Text(
+                            text = if (rooted) {
+                                stringResource(CoreR.string.module_store_root_ready)
+                            } else {
+                                stringResource(CoreR.string.module_store_browse_only)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
                     Text(
-                        text = if (rooted) {
-                            stringResource(CoreR.string.module_store_root_ready)
-                        } else {
-                            stringResource(CoreR.string.module_store_browse_only)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
+                        stringResource(
+                            CoreR.string.module_store_repository_summary,
+                            state.loadedRepositoryIds.size,
+                            repositoryModuleCount,
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
+                    if (state.repositoryErrors.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            stringResource(
+                                CoreR.string.module_store_repository_unavailable,
+                                state.repositoryErrors.size,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
                 }
             }
 
@@ -194,7 +233,7 @@ fun ModuleStoreScreen(
                         contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(modules, key = { it.id }) { module ->
+                        items(modules, key = { "${it.repositoryId}:${it.id}" }) { module ->
                             StoreModuleCard(
                                 module = module,
                                 rooted = rooted,
@@ -219,6 +258,52 @@ fun ModuleStoreScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RepositorySelector(
+    selectedRepositoryId: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedRepositoryName = MODULE_REPOSITORIES.firstOrNull {
+        it.id == selectedRepositoryId
+    }?.name ?: stringResource(CoreR.string.module_store_all_repositories)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+    ) {
+        TextButton(onClick = { expanded = true }) {
+            Text(
+                text = "${stringResource(CoreR.string.module_store_repository)}: $selectedRepositoryName",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(CoreR.string.module_store_all_repositories)) },
+                onClick = {
+                    expanded = false
+                    onSelect(ALL_MODULE_REPOSITORIES)
+                },
+            )
+            MODULE_REPOSITORIES.forEach { repository ->
+                DropdownMenuItem(
+                    text = { Text(repository.name) },
+                    onClick = {
+                        expanded = false
+                        onSelect(repository.id)
+                    },
+                )
             }
         }
     }
@@ -252,6 +337,13 @@ private fun StoreModuleCard(
                         module.id,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        stringResource(CoreR.string.module_store_source_label, module.repositoryName),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

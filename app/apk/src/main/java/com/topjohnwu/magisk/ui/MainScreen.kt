@@ -88,6 +88,7 @@ fun MainScreen(
     val initialPage = visibleTabs.indexOf(Tab.entries[initialTab]).coerceAtLeast(0)
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { visibleTabs.size })
     var moduleFabAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var showModuleStore by rememberSaveable { mutableStateOf(!Info.env.isActive) }
     val isModulesTab = visibleTabs.getOrNull(pagerState.currentPage) == Tab.MODULES
 
     Scaffold(
@@ -177,15 +178,14 @@ fun MainScreen(
                     LogScreen(vm)
                 }
                 Tab.MODULES -> {
-                    var showStore by rememberSaveable { mutableStateOf(!Info.env.isActive) }
-                    if (showStore) {
+                    if (showModuleStore) {
                         val storeVm: ModuleStoreViewModel = viewModel(factory = VMFactory)
-                        LaunchedEffect(showStore, isCurrentPage) {
-                            if (showStore && isCurrentPage) storeVm.startLoading()
+                        LaunchedEffect(showModuleStore, isCurrentPage) {
+                            if (showModuleStore && isCurrentPage) storeVm.startLoading()
                         }
                         ModuleStoreScreen(
                             viewModel = storeVm,
-                            onBack = if (Info.env.isActive) ({ showStore = false }) else null,
+                            onBack = if (Info.env.isActive) ({ showModuleStore = false }) else null,
                         )
                     } else {
                         val vm: ModuleViewModel = viewModel(factory = VMFactory)
@@ -198,7 +198,7 @@ fun MainScreen(
                             onRegisterFab = { moduleFabAction = it },
                             onOpenStore = {
                                 moduleFabAction = null
-                                showStore = true
+                                showModuleStore = true
                             },
                         )
                     }
@@ -211,7 +211,16 @@ fun MainScreen(
                         }
                     }
                     CollectNavEvents(vm, navigator)
-                    SettingsScreen(vm)
+                    SettingsScreen(
+                        viewModel = vm,
+                        onOpenModuleStore = {
+                            showModuleStore = true
+                            val modulesPage = visibleTabs.indexOf(Tab.MODULES)
+                            if (modulesPage >= 0) {
+                                scope.launch { pagerState.animateScrollToPage(modulesPage) }
+                            }
+                        },
+                    )
                 }
             }
         }

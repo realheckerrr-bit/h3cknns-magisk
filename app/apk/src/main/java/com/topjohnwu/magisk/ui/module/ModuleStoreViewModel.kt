@@ -8,6 +8,9 @@ import com.topjohnwu.magisk.core.utils.MediaStoreUtils
 import com.topjohnwu.magisk.ui.flash.FlashUtils
 import com.topjohnwu.magisk.view.Notifications
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,10 +22,73 @@ import org.json.JSONObject
 
 private const val ALT_REPO_INDEX =
     "https://raw.githubusercontent.com/Magisk-Modules-Alt-Repo/json/main/modules.json"
+private const val GOOGLERS_REPO_INDEX =
+    "https://gr.dergoogler.com/gmr/json/modules.json"
+private const val IZZY_REPO_INDEX =
+    "https://apt.izzysoft.de/magisk/json/modules.json"
+private const val RIKJ000_REPO_INDEX =
+    "https://rikj000.github.io/Magisk-Modules-Rikj000-Repo/json/modules.json"
+private const val FONT_REPO_INDEX =
+    "https://codeberg.org/fruitsnack/magisk-font-repo/raw/branch/main/json/modules.json"
+
+const val ALL_MODULE_REPOSITORIES = "all"
+
+enum class ModuleRepositoryFormat {
+    ALT_REPO,
+    MMRL,
+}
+
+data class ModuleRepository(
+    val id: String,
+    val name: String,
+    val indexUrl: String,
+    val websiteUrl: String,
+    val format: ModuleRepositoryFormat,
+)
+
+val MODULE_REPOSITORIES = listOf(
+    ModuleRepository(
+        id = "alt_repo",
+        name = "Magisk Modules Alt-Repo",
+        indexUrl = ALT_REPO_INDEX,
+        websiteUrl = "https://github.com/Magisk-Modules-Alt-Repo/json",
+        format = ModuleRepositoryFormat.ALT_REPO,
+    ),
+    ModuleRepository(
+        id = "googlers",
+        name = "Googlers Magisk Repo",
+        indexUrl = GOOGLERS_REPO_INDEX,
+        websiteUrl = "https://gr.dergoogler.com/gmr/",
+        format = ModuleRepositoryFormat.MMRL,
+    ),
+    ModuleRepository(
+        id = "izzy",
+        name = "IzzyOnDroid Magisk Repo",
+        indexUrl = IZZY_REPO_INDEX,
+        websiteUrl = "https://apt.izzysoft.de/magisk/",
+        format = ModuleRepositoryFormat.MMRL,
+    ),
+    ModuleRepository(
+        id = "rikj000",
+        name = "Magisk Modules - Rikj000's Repo",
+        indexUrl = RIKJ000_REPO_INDEX,
+        websiteUrl = "https://rikj000.github.io/Magisk-Modules-Rikj000-Repo/",
+        format = ModuleRepositoryFormat.MMRL,
+    ),
+    ModuleRepository(
+        id = "fonts",
+        name = "Magisk Font Collection",
+        indexUrl = FONT_REPO_INDEX,
+        websiteUrl = "https://codeberg.org/fruitsnack/magisk-font-repo",
+        format = ModuleRepositoryFormat.MMRL,
+    ),
+)
 
 data class StoreModule(
     val id: String,
     val name: String,
+    val repositoryId: String,
+    val repositoryName: String,
     val stars: Int,
     val zipUrl: String,
     val notesUrl: String,
@@ -33,15 +99,25 @@ data class StoreModule(
 data class ModuleStoreState(
     val loading: Boolean = true,
     val query: String = "",
+    val selectedRepositoryId: String = ALL_MODULE_REPOSITORIES,
+    val modules: List<StoreModule> = emptyList(),
+    val loadedRepositoryIds: Set<String> = emptySet(),
+    val repositoryErrors: Map<String, String> = emptyMap(),
+    val error: String? = null,
+)
+
+private data class RepositoryLoadResult(
+    val repository: ModuleRepository,
     val modules: List<StoreModule> = emptyList(),
     val error: String? = null,
 )
 
 /**
- * Reads the public, moderated Magisk-Modules-Alt-Repo index.
- *
- * The index is deliberately fetched without a root shell so the catalog can be browsed on any
+ * Reads public Magisk module indexes without a root shell so the catalog can be browsed on any
  * supported Android device. Installation is kept in the UI layer and is explicitly root-gated.
+ *
+ * The built-in repositories use either the Alt-Repo format or the MMRL JSON format. A repository
+ * failing to load does not hide modules from the other sources.
  */
 class ModuleStoreViewModel : AsyncLoadViewModel() {
 
@@ -50,20 +126,43 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
 
     override suspend fun doLoadWork() {
         _uiState.update { it.copy(loading = true, error = null) }
-        try {
-            val modules = withContext(Dispatchers.IO) {
-                parseIndex(ServiceLocator.networkService.fetchString(ALT_REPO_INDEX))
+        val results = withContext(Dispatchers.IO) {
+            coroutineScope {
+                MODULE_REPOSITORIES.map { repository ->
+                    async {
+                        try {
+                            val raw = ServiceLocator.networkService.fetchString(repository.indexUrl)
+                            RepositoryLoadResult(
+                                repository = repository,
+                                modules = parseIndex(raw, repository),
+                            )
+                        } catch (e: Exception) {
+                            RepositoryLoadResult(
+                                repository = repository,
+                                error = e.message ?: "Unable to load repository",
+                            )
+                        }
+                    }
+                }.awaitAll()
             }
-            _uiState.update { state ->
-                state.copy(loading = false, modules = modules, error = null)
-            }
-        } catch (e: Exception) {
-            _uiState.update {
-                it.copy(
-                    loading = false,
-                    error = e.message ?: "Unable to load the module catalog"
-                )
-            }
+        }
+        val loaded = results.filter { it.error == null }
+        val errors = results
+            .filter { it.error != null }
+            .associate { it.repository.id to (it.error ?: "Unable to load repository") }
+        val modules = results.flatMap { it.modules }
+        _uiState.update { state ->
+            state.copy(
+                loading = false,
+                modules = modules,
+                loadedRepositoryIds = loaded.map { it.repository.id }.toSet(),
+                repositoryErrors = errors,
+                error = if (modules.isEmpty() && errors.size == MODULE_REPOSITORIES.size) {
+                    "Unable to load any module repository"
+                } else {
+                    null
+                },
+            )
         }
     }
 
@@ -71,16 +170,32 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
         _uiState.update { it.copy(query = query) }
     }
 
+    fun selectRepository(repositoryId: String) {
+        _uiState.update { it.copy(selectedRepositoryId = repositoryId) }
+    }
+
     fun filteredModules(state: ModuleStoreState): List<StoreModule> {
         val query = state.query.trim()
-        if (query.isEmpty()) return state.modules
-        return state.modules.filter {
+        val sourceModules = if (state.selectedRepositoryId == ALL_MODULE_REPOSITORIES) {
+            state.modules.distinctBy { it.id.lowercase() }
+        } else {
+            state.modules.filter { it.repositoryId == state.selectedRepositoryId }
+        }
+        if (query.isEmpty()) return sourceModules
+        return sourceModules.filter {
             it.name.contains(query, ignoreCase = true) ||
                 it.id.contains(query, ignoreCase = true)
         }
     }
 
-    private fun parseIndex(raw: String): List<StoreModule> {
+    private fun parseIndex(raw: String, repository: ModuleRepository): List<StoreModule> = when (
+        repository.format
+    ) {
+        ModuleRepositoryFormat.ALT_REPO -> parseAltRepoIndex(raw, repository)
+        ModuleRepositoryFormat.MMRL -> parseMmrlIndex(raw, repository)
+    }
+
+    private fun parseAltRepoIndex(raw: String, repository: ModuleRepository): List<StoreModule> {
         val array = JSONObject(raw).optJSONArray("modules") ?: return emptyList()
         return buildList {
             for (index in 0 until array.length()) {
@@ -92,6 +207,8 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
                     StoreModule(
                         id = id,
                         name = id.toDisplayName(),
+                        repositoryId = repository.id,
+                        repositoryName = repository.name,
                         stars = item.optInt("stars", 0),
                         zipUrl = zipUrl,
                         notesUrl = item.optString("notes_url").trim(),
@@ -101,6 +218,80 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
                 )
             }
         }.sortedWith(compareByDescending<StoreModule> { it.stars }.thenBy { it.name.lowercase() })
+    }
+
+    private fun parseMmrlIndex(raw: String, repository: ModuleRepository): List<StoreModule> {
+        val array = JSONObject(raw).optJSONArray("modules") ?: return emptyList()
+        return buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                val id = item.optString("id").trim()
+                val version = item.latestVersion() ?: continue
+                val zipUrl = version.optString("zipUrl").trim()
+                if (id.isEmpty() || zipUrl.isEmpty()) continue
+
+                val track = item.optJSONObject("track")
+                val notesUrl = item.optString("readme").trim().ifBlank {
+                    track?.optString("homepage")?.trim().orEmpty()
+                }
+                val propUrl = track?.optString("source")?.trim().orEmpty().ifBlank {
+                    item.optString("support").trim()
+                }
+                add(
+                    StoreModule(
+                        id = id,
+                        name = item.optString("name").trim().ifBlank { id.toDisplayName() },
+                        repositoryId = repository.id,
+                        repositoryName = repository.name,
+                        stars = item.optInt("stars", 0),
+                        zipUrl = zipUrl,
+                        notesUrl = notesUrl,
+                        propUrl = propUrl,
+                        lastUpdate = version.optDouble("timestamp", 0.0).toTimestampMillis(),
+                    )
+                )
+            }
+        }.sortedWith(compareByDescending<StoreModule> { it.stars }.thenBy { it.name.lowercase() })
+    }
+
+    private fun JSONObject.latestVersion(): JSONObject? {
+        val versions = optJSONArray("versions")
+        if (versions != null && versions.length() > 0) {
+            var latest: JSONObject? = null
+            var latestTimestamp = Double.MIN_VALUE
+            for (index in 0 until versions.length()) {
+                val version = versions.optJSONObject(index) ?: continue
+                val timestamp = version.optDouble("timestamp", 0.0)
+                if (latest == null || timestamp >= latestTimestamp) {
+                    latest = version
+                    latestTimestamp = timestamp
+                }
+            }
+            if (latest != null) return latest
+        }
+
+        val states = optJSONObject("states") ?: return null
+        val directZipUrl = states.optString("zipUrl").trim()
+        if (directZipUrl.isNotEmpty()) return states
+        var latest: JSONObject? = null
+        var latestTimestamp = Double.MIN_VALUE
+        for (key in states.keys()) {
+            val state = states.optJSONObject(key) ?: continue
+            val timestamp = state.optDouble("timestamp", 0.0)
+            if (state.optString("zipUrl").isNotBlank() &&
+                (latest == null || timestamp >= latestTimestamp)
+            ) {
+                latest = state
+                latestTimestamp = timestamp
+            }
+        }
+        return latest
+    }
+
+    private fun Double.toTimestampMillis(): Long = when {
+        this <= 0.0 -> 0L
+        this < 10_000_000_000.0 -> (this * 1000.0).toLong()
+        else -> toLong()
     }
 
     private fun String.toDisplayName(): String =

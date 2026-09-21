@@ -56,7 +56,8 @@ import com.topjohnwu.magisk.core.R as CoreR
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenModuleStore: () -> Unit = {},
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollState = rememberScrollState()
@@ -80,6 +81,8 @@ fun SettingsScreen(
         ) {
             CustomizationSection(viewModel = viewModel)
             Spacer(Modifier.height(16.dp))
+            ModuleStoreSection(onOpenModuleStore = onOpenModuleStore)
+            Spacer(Modifier.height(16.dp))
             AppSettingsSection()
             if (Info.env.isActive) {
                 Spacer(Modifier.height(16.dp))
@@ -90,6 +93,25 @@ fun SettingsScreen(
                 SuperuserSection(viewModel = viewModel)
             }
         }
+    }
+}
+
+@Composable
+private fun ModuleStoreSection(
+    onOpenModuleStore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SmallTitle(text = stringResource(CoreR.string.module_store_title))
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        SettingsArrow(
+            title = stringResource(CoreR.string.settings_module_store_title),
+            summary = stringResource(CoreR.string.settings_module_store_summary),
+            onClick = onOpenModuleStore,
+        )
     }
 }
 

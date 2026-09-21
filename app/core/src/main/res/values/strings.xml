@@ -3,7 +3,12 @@
     <!--Sections-->
     <string name="modules">Modules</string>
     <string name="module_store_title">Module store</string>
-    <string name="module_store_source">Magisk Modules Alt-Repo</string>
+    <string name="module_store_source">Repository</string>
+    <string name="module_store_repository">Repository</string>
+    <string name="module_store_all_repositories">All repositories</string>
+    <string name="module_store_repository_summary">%1$d repositories · %2$d modules</string>
+    <string name="module_store_repository_unavailable">%1$d repositories could not be loaded.</string>
+    <string name="module_store_source_label">Source: %1$s</string>
     <string name="module_store_search">Search modules</string>
     <string name="module_store_root_ready">Root access is available. Downloads can be installed after they finish.</string>
     <string name="module_store_browse_only">Browsing works without root. You need root to install modules.</string>
@@ -14,6 +19,8 @@
     <string name="module_store_stars">%1$d stars</string>
     <string name="module_store_empty">No modules match your search.</string>
     <string name="module_store_load_failed">Could not load the module catalog.</string>
+    <string name="settings_module_store_title">Open module store</string>
+    <string name="settings_module_store_summary">Browse community repositories and review modules before installing</string>
     <string name="superuser">Superuser</string>
     <string name="logs">Logs</string>
     <string name="settings">Settings</string>
