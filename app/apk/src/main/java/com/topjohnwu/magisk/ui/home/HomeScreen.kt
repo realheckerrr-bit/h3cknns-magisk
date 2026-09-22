@@ -503,9 +503,6 @@ private fun CoreCard(
     modifier: Modifier = Modifier,
 ) {
     val isInstalled = state != HomeViewModel.State.INVALID
-    val displayVersion = (latestVersion.ifEmpty { installedVersion })
-        .substringBefore(" (")
-        .takeIf { it.isNotBlank() }
     val actionLabel = when (state) {
         HomeViewModel.State.OUTDATED -> stringResource(CoreR.string.update)
         HomeViewModel.State.INVALID -> stringResource(CoreR.string.install)
@@ -540,9 +537,7 @@ private fun CoreCard(
                     )
                     Spacer(Modifier.width(16.dp))
                     Text(
-                        text = displayVersion?.let {
-                            stringResource(CoreR.string.home_magisk_version_title, it)
-                        } ?: stringResource(CoreR.string.magisk),
+                        text = stringResource(CoreR.string.magisk),
                         style = MaterialTheme.typography.titleLarge
                     )
                 }
@@ -559,12 +554,12 @@ private fun CoreCard(
             if (state != HomeViewModel.State.LOADING && latestVersion.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 AppDetailRow(
-                    label = stringResource(CoreR.string.home_latest_version),
+                    label = stringResource(CoreR.string.home_magisk_latest_version),
                     value = latestVersion,
                 )
             }
             AppDetailRow(
-                label = stringResource(CoreR.string.home_installed_version),
+                label = stringResource(CoreR.string.home_magisk_installed_version),
                 value = if (isInstalled) {
                     installedVersion.ifEmpty { stringResource(CoreR.string.not_available) }
                 } else {
@@ -617,10 +612,7 @@ private fun AppCard(
                     )
                     Spacer(Modifier.width(16.dp))
                     Text(
-                        text = stringResource(
-                            CoreR.string.home_manager_version_title,
-                            (remoteVersion.ifEmpty { version }).substringBefore(" (")
-                        ),
+                        text = stringResource(CoreR.string.home_app_title),
                         style = MaterialTheme.typography.titleLarge
                     )
                 }
@@ -652,9 +644,9 @@ private fun AppCard(
             Spacer(Modifier.height(16.dp))
 
             if (state != HomeViewModel.State.LOADING) {
-                AppDetailRow(label = stringResource(CoreR.string.home_latest_version), value = remoteVersion)
+                AppDetailRow(label = stringResource(CoreR.string.home_fork_latest_version), value = remoteVersion)
             }
-            AppDetailRow(label = stringResource(CoreR.string.home_installed_version), value = version)
+            AppDetailRow(label = stringResource(CoreR.string.home_fork_installed_version), value = version)
             AppDetailRow(label = stringResource(CoreR.string.home_package), value = LocalContext.current.packageName)
 
             if (progress in 1..99) {
