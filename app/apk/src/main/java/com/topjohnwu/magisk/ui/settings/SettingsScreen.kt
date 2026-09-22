@@ -2,8 +2,12 @@ package com.topjohnwu.magisk.ui.settings
 
 import android.os.Build
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Alignment
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,13 +18,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,6 +60,7 @@ import com.topjohnwu.magisk.ui.component.SettingsDropdown
 import com.topjohnwu.magisk.ui.component.SettingsSwitch
 import com.topjohnwu.magisk.ui.component.SmallTitle
 import com.topjohnwu.magisk.ui.component.verticalScrollbar
+import com.topjohnwu.magisk.ui.integration.LsPosedIntegration
 import com.topjohnwu.magisk.core.R as CoreR
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,6 +94,8 @@ fun SettingsScreen(
             Spacer(Modifier.height(16.dp))
             ModuleStoreSection(onOpenModuleStore = onOpenModuleStore)
             Spacer(Modifier.height(16.dp))
+            IntegrationsSection(onOpenModuleStore = onOpenModuleStore)
+            Spacer(Modifier.height(16.dp))
             AppSettingsSection()
             if (Info.env.isActive) {
                 Spacer(Modifier.height(16.dp))
@@ -91,6 +104,91 @@ fun SettingsScreen(
             if (Info.showSuperUser) {
                 Spacer(Modifier.height(16.dp))
                 SuperuserSection(viewModel = viewModel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IntegrationsSection(
+    onOpenModuleStore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val status = remember(context) { LsPosedIntegration.status(context) }
+    val statusText = when {
+        status.managerInstalled -> stringResource(CoreR.string.lsposed_manager_detected)
+        status.frameworkInstalled -> stringResource(CoreR.string.lsposed_framework_detected)
+        else -> stringResource(CoreR.string.lsposed_not_detected)
+    }
+    val actionText = if (status.managerInstalled) {
+        stringResource(CoreR.string.lsposed_open_manager)
+    } else {
+        stringResource(CoreR.string.lsposed_browse_modules)
+    }
+
+    SmallTitle(text = stringResource(CoreR.string.integrations))
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Extension,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(CoreR.string.lsposed_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(CoreR.string.lsposed_summary),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            RoundedCornerShape(50),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledTonalButton(
+                    onClick = {
+                        if (!LsPosedIntegration.openManager(context, status)) {
+                            onOpenModuleStore()
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(actionText)
+                }
+                IconButton(onClick = { LsPosedIntegration.openSource(context) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.OpenInNew,
+                        contentDescription = stringResource(CoreR.string.lsposed_learn_more),
+                    )
+                }
             }
         }
     }

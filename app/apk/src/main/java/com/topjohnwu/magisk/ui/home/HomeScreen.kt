@@ -96,6 +96,7 @@ import com.topjohnwu.magisk.ui.component.verticalScrollbar
 import com.topjohnwu.magisk.ui.flash.FlashUtils
 import com.topjohnwu.magisk.ui.install.InstallDialog
 import com.topjohnwu.magisk.ui.install.InstallViewModel
+import com.topjohnwu.magisk.ui.integration.LsPosedIntegration
 import kotlinx.coroutines.launch
 import java.io.File
 import com.topjohnwu.magisk.core.R as CoreR
@@ -698,7 +699,18 @@ private data class StatusInfo(val label: String, val status: String)
 private fun StatusCard(
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val lsPosedStatus = remember(context) { LsPosedIntegration.status(context) }
+    val lsPosedText = when {
+        lsPosedStatus.managerInstalled -> stringResource(CoreR.string.lsposed_manager_detected)
+        lsPosedStatus.frameworkInstalled -> stringResource(CoreR.string.lsposed_framework_detected)
+        else -> stringResource(CoreR.string.lsposed_not_detected)
+    }
     val statuses = listOf(
+        StatusInfo(
+            label = stringResource(CoreR.string.root_access_status),
+            status = stringResource(if (Info.isRooted) CoreR.string.enabled else CoreR.string.disabled)
+        ),
         StatusInfo(
             label = stringResource(CoreR.string.zygisk),
             status = stringResource(if (Info.isZygiskEnabled) CoreR.string.enabled else CoreR.string.disabled)
@@ -706,6 +718,10 @@ private fun StatusCard(
         StatusInfo(
             label = stringResource(CoreR.string.ramdisk),
             status = stringResource(if (Info.ramdisk) CoreR.string.yes else CoreR.string.no)
+        ),
+        StatusInfo(
+            label = stringResource(CoreR.string.lsposed_title),
+            status = lsPosedText,
         )
     )
 

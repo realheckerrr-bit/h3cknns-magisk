@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Flat, high-contrast mask mark designed for adaptive and themed icons. -->
+    <path
+        android:fillColor="#6750A4"
+        android:pathData="M54,4A50,50 0,1 0,54 104A50,50 0,1 0,54 4" />
+    <path
+        android:fillColor="#E8DEF8"
+        android:pathData="M24,31C30,19 41,13 54,13C67,13 78,19 84,31L78,72C75,87 65,97 54,101C43,97 33,87 30,72Z" />
+    <path
+        android:fillColor="#4F378B"
+        android:pathData="M25,31C31,22 37,18 44,16L49,39L30,34Z" />
+    <path
+        android:fillColor="#4F378B"
+        android:pathData="M83,31C77,22 71,18 64,16L59,39L78,34Z" />
+    <path
+        android:fillColor="#1D1B20"
+        android:pathData="M27,43C34,36 43,35 49,41C46,51 35,55 27,43Z" />
+    <path
+        android:fillColor="#1D1B20"
+        android:pathData="M59,41C65,35 74,36 81,43C73,55 62,51 59,41Z" />
+    <path
+        android:fillColor="#6750A4"
+        android:pathData="M50,17L54,55L58,17C56,15 52,15 50,17Z" />
+    <path
+        android:fillColor="#6750A4"
+        android:pathData="M31,65C39,60 47,61 54,67C61,61 69,60 77,65C71,76 62,81 54,75C46,81 37,76 31,65Z" />
+    <path
+        android:fillColor="#D0BCFF"
+        android:pathData="M48,75C50,77 52,78 54,78C56,78 58,77 60,75L59,98C57,100 56,101 54,101C52,101 51,100 49,98Z" />
+</vector>

@@ -27,6 +27,15 @@
     <string name="module_store_load_failed">Could not load the module catalog.</string>
     <string name="settings_module_store_title">Open module store</string>
     <string name="settings_module_store_summary">Browse community repositories and review modules before installing</string>
+    <string name="integrations">Integrations</string>
+    <string name="lsposed_title">LSPosed</string>
+    <string name="lsposed_summary">Open LSPosed Manager or browse compatible modules</string>
+    <string name="lsposed_manager_detected">Ready</string>
+    <string name="lsposed_framework_detected">Framework found</string>
+    <string name="lsposed_not_detected">Not found</string>
+    <string name="lsposed_open_manager">Open Manager</string>
+    <string name="lsposed_browse_modules">Browse modules</string>
+    <string name="lsposed_learn_more">Learn more about LSPosed</string>
     <string name="superuser">Superuser</string>
     <string name="logs">Logs</string>
     <string name="settings">Settings</string>
@@ -37,6 +46,7 @@
     <string name="ok">OK</string>
     <string name="section_theme">Themes</string>
     <string name="denylist">DenyList</string>
+    <string name="root_access_status">Root access</string>
 
     <!--Home-->
     <string name="no_connection">No connection available</string>
