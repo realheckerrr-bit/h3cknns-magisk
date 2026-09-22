@@ -47,7 +47,9 @@
     <string name="not_installed">Not Installed</string>
     <string name="hide">Hide</string>
     <string name="home_package">Package</string>
-    <string name="home_app_title">h3cknn\'s Magisk</string>
+    <string name="home_magisk_version_title">Magisk %1$s</string>
+    <string name="home_app_title">h3cknn Mod</string>
+    <string name="home_manager_version_title">h3cknn Mod %1$s</string>
     <string name="reinstall">Reinstall</string>
     <string name="home_notice_content">Download Magisk ONLY from the official GitHub page. Files from unknown sources can be malicious!</string>
     <string name="home_support_title">Support Us</string>

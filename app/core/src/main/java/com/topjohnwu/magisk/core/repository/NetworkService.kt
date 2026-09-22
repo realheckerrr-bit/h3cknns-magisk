@@ -30,6 +30,11 @@ class NetworkService(
         findMagiskRelease { it.versionCode == version }.asInfo()
     }
 
+    /** Fetch the newest stable Magisk core release from the official repository. */
+    suspend fun fetchMagiskLatest() = safe {
+        findMagiskRelease { it.tag.startsWith("v") && !it.prerelease }.asInfo()
+    }
+
     private suspend fun findAppRelease(): Release? {
         return findRelease(
             owner = Const.Url.APP_GITHUB_OWNER,

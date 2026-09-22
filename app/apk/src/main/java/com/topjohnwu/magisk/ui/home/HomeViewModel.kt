@@ -34,6 +34,7 @@ class HomeViewModel(
         val isNoticeVisible: Boolean = Config.safetyNotice,
         val appState: State = State.LOADING,
         val managerRemoteVersion: String = "",
+        val magiskLatestVersion: String = "",
         val managerProgress: Int = 0,
         val showUninstall: Boolean = false,
         val showManagerInstall: Boolean = false,
@@ -54,10 +55,10 @@ class HomeViewModel(
     companion object {
         private var checkedEnv = false
 
-        fun computeMagiskState() = when {
+        fun computeMagiskState(latestVersionCode: Int = -1) = when {
             Info.isRooted && Info.env.isUnsupported -> State.OUTDATED
             !Info.env.isActive -> State.INVALID
-            Info.env.versionCode < BuildConfig.APP_VERSION_CODE -> State.OUTDATED
+            Info.env.versionCode < maxOf(BuildConfig.APP_VERSION_CODE, latestVersionCode) -> State.OUTDATED
             else -> State.UP_TO_DATE
         }
 
@@ -90,15 +91,22 @@ class HomeViewModel(
                 managerInstalledVersion = computeManagerInstalledVersion(),
             )
         }
-        Info.fetchUpdate(svc)?.apply {
-            _uiState.update {
-                it.copy(
-                    appState = if (BuildConfig.MANAGER_VERSION_CODE < versionCode) State.OUTDATED else State.UP_TO_DATE,
-                    managerRemoteVersion = "$version ($versionCode)" + if (BuildConfig.DEBUG) " (D)" else ""
-                )
-            }
-        } ?: run {
-            _uiState.update { it.copy(appState = State.INVALID, managerRemoteVersion = "") }
+        val magiskUpdate = svc.fetchMagiskLatest()
+        val managerUpdate = Info.fetchUpdate(svc)
+        _uiState.update {
+            it.copy(
+                magiskState = computeMagiskState(magiskUpdate?.versionCode ?: -1),
+                magiskLatestVersion = magiskUpdate?.let { update ->
+                    "${update.version} (${update.versionCode})"
+                }.orEmpty(),
+                appState = managerUpdate?.let { update ->
+                    if (BuildConfig.MANAGER_VERSION_CODE < update.versionCode) State.OUTDATED
+                    else State.UP_TO_DATE
+                } ?: State.INVALID,
+                managerRemoteVersion = managerUpdate?.let { update ->
+                    "${update.version} (${update.versionCode})" + if (BuildConfig.DEBUG) " (D)" else ""
+                }.orEmpty(),
+            )
         }
         ensureEnv()
     }

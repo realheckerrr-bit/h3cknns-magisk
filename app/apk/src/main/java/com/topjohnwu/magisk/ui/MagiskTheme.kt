@@ -12,6 +12,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -19,10 +20,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.google.android.material.color.utilities.DynamicColor
@@ -198,6 +202,14 @@ fun MagiskTheme(
         else -> dynamicColorScheme(MagiskAccentColor, isDark = false)
     }
 
+    // Keep Compose on the device's current density and font scale. This is
+    // intentionally not a fixed DPI so display-size changes are respected.
+    val resources = LocalResources.current
+    val deviceDensity = Density(
+        density = resources.displayMetrics.density,
+        fontScale = resources.configuration.fontScale,
+    )
+
     val activity = LocalActivity.current
     val view = LocalView.current
     if (!view.isInEditMode && activity != null) {
@@ -209,10 +221,12 @@ fun MagiskTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        shapes = MagiskShapes,
-        typography = MagiskTypography,
-        content = content
-    )
+    CompositionLocalProvider(LocalDensity provides deviceDensity) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            shapes = MagiskShapes,
+            typography = MagiskTypography,
+            content = content
+        )
+    }
 }

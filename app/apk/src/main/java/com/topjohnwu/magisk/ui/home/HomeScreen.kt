@@ -285,7 +285,8 @@ fun HomeScreen(
             CoreCard(
                 modifier = Modifier.fillMaxWidth(),
                 state = uiState.magiskState,
-                version = uiState.magiskInstalledVersion,
+                installedVersion = uiState.magiskInstalledVersion,
+                latestVersion = uiState.magiskLatestVersion,
                 onInstallClicked = { showInstallDialog = true }
             )
 
@@ -495,11 +496,15 @@ private fun InstallButton(
 @Composable
 private fun CoreCard(
     state: HomeViewModel.State,
-    version: String,
+    installedVersion: String,
+    latestVersion: String,
     onInstallClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isInstalled = state != HomeViewModel.State.INVALID
+    val displayVersion = (latestVersion.ifEmpty { installedVersion })
+        .substringBefore(" (")
+        .takeIf { it.isNotBlank() }
     val actionLabel = when (state) {
         HomeViewModel.State.OUTDATED -> stringResource(CoreR.string.update)
         HomeViewModel.State.INVALID -> stringResource(CoreR.string.install)
@@ -512,52 +517,59 @@ private fun CoreCard(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Icon(
-                    painter = painterResource(CoreR.drawable.ic_magisk_outline),
-                    contentDescription = null,
-                    tint = if (isInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(48.dp)
-                )
-                Spacer(Modifier.width(16.dp))
-                Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        painter = painterResource(CoreR.drawable.ic_magisk_outline),
+                        contentDescription = null,
+                        tint = if (isInstalled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
                     Text(
-                        text = stringResource(CoreR.string.magisk),
+                        text = displayVersion?.let {
+                            stringResource(CoreR.string.home_magisk_version_title, it)
+                        } ?: stringResource(CoreR.string.magisk),
                         style = MaterialTheme.typography.titleLarge
                     )
-                    Text(
-                        text = if (isInstalled) {
-                            version.ifEmpty { stringResource(CoreR.string.not_available) }
-                        } else {
-                            stringResource(CoreR.string.not_installed)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isInstalled) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        }
+                }
+
+                if (actionLabel != null) {
+                    InstallButton(
+                        label = actionLabel,
+                        onClick = onInstallClicked,
+                        isPrimary = !isInstalled,
                     )
                 }
             }
 
-            if (actionLabel != null) {
-                InstallButton(
-                    label = actionLabel,
-                    onClick = onInstallClicked,
-                    isPrimary = !isInstalled,
+            if (state != HomeViewModel.State.LOADING && latestVersion.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                AppDetailRow(
+                    label = stringResource(CoreR.string.home_latest_version),
+                    value = latestVersion,
                 )
             }
+            AppDetailRow(
+                label = stringResource(CoreR.string.home_installed_version),
+                value = if (isInstalled) {
+                    installedVersion.ifEmpty { stringResource(CoreR.string.not_available) }
+                } else {
+                    stringResource(CoreR.string.not_installed)
+                },
+            )
         }
     }
 }
@@ -604,7 +616,10 @@ private fun AppCard(
                     )
                     Spacer(Modifier.width(16.dp))
                     Text(
-                        text = stringResource(CoreR.string.home_app_title),
+                        text = stringResource(
+                            CoreR.string.home_manager_version_title,
+                            (remoteVersion.ifEmpty { version }).substringBefore(" (")
+                        ),
                         style = MaterialTheme.typography.titleLarge
                     )
                 }
