@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,6 +36,7 @@ import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -55,7 +55,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -692,7 +691,9 @@ private fun StatusCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val lsPosedStatus = remember(context) { LsPosedIntegration.status(context) }
+    var lsPosedStatus by remember(context) {
+        mutableStateOf(LsPosedIntegration.status(context))
+    }
     val lsPosedText = when {
         lsPosedStatus.managerInstalled -> stringResource(CoreR.string.lsposed_manager_detected)
         lsPosedStatus.frameworkInstalled -> stringResource(CoreR.string.lsposed_framework_detected)
@@ -725,36 +726,62 @@ private fun StatusCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(start = 16.dp, top = 8.dp, end = 8.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            statuses.forEachIndexed { index, info ->
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = info.label,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = info.status,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+            Text(
+                text = stringResource(CoreR.string.home_device_status),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick = { lsPosedStatus = LsPosedIntegration.status(context) },
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Refresh,
+                    contentDescription = stringResource(CoreR.string.refresh),
+                )
+            }
+        }
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+        )
+        statuses.chunked(2).forEachIndexed { rowIndex, row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                row.forEach { info ->
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.Start,
+                    ) {
+                        Text(
+                            text = info.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = info.status,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
-                if (index < statuses.lastIndex) {
-                    VerticalDivider(
-                        thickness = 0.5.dp,
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
+                if (row.size == 1) {
+                    Spacer(Modifier.weight(1f))
                 }
+            }
+            if (rowIndex < statuses.chunked(2).lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
             }
         }
     }

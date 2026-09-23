@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -115,7 +116,9 @@ private fun IntegrationsSection(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val status = remember(context) { LsPosedIntegration.status(context) }
+    var status by remember(context) {
+        mutableStateOf(LsPosedIntegration.status(context))
+    }
     val statusText = when {
         status.managerInstalled -> stringResource(CoreR.string.lsposed_manager_detected)
         status.frameworkInstalled -> stringResource(CoreR.string.lsposed_framework_detected)
@@ -166,6 +169,12 @@ private fun IntegrationsSection(
                         )
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                 )
+                IconButton(onClick = { status = LsPosedIntegration.status(context) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Refresh,
+                        contentDescription = stringResource(CoreR.string.refresh),
+                    )
+                }
             }
             Spacer(Modifier.height(14.dp))
             Row(

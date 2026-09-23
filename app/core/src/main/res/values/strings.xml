@@ -47,6 +47,7 @@
     <string name="section_theme">Themes</string>
     <string name="denylist">DenyList</string>
     <string name="root_access_status">Root access</string>
+    <string name="home_device_status">Device status</string>
 
     <!--Home-->
     <string name="no_connection">No connection available</string>
