@@ -49,6 +49,8 @@ object Config : PreferenceConfig, DBConfig {
         const val RAND_NAME = "rand_name"
         const val MODULE_FAVORITES = "module_favorites"
         const val ACCENT_COLOR = "accent_color"
+        const val CHECK_MODULE_UPDATES = "check_module_updates"
+        const val MODULE_UPDATE_NOTIFIED = "module_update_notified"
 
         val NO_MIGRATION = setOf(ASKED_HOME, SU_REQUEST_TIMEOUT,
             SU_AUTO_RESPONSE, SU_REAUTH, SU_TAPJACK)
@@ -128,6 +130,18 @@ object Config : PreferenceConfig, DBConfig {
     var downloadDir by preference(Key.DOWNLOAD_DIR, "")
     var randName by preference(Key.RAND_NAME, true)
     var accentColor by preference(Key.ACCENT_COLOR, 0xFF1A73E8.toInt())
+    private var checkModuleUpdatesPrefs by preference(Key.CHECK_MODULE_UPDATES, false)
+    var checkModuleUpdates
+        get() = checkModuleUpdatesPrefs
+        set(value) {
+            if (checkModuleUpdatesPrefs != value) {
+                checkModuleUpdatesPrefs = value
+                JobService.schedule(AppContext)
+            }
+        }
+    var moduleUpdateNotified: Set<String>
+        get() = prefs.getStringSet(Key.MODULE_UPDATE_NOTIFIED, emptySet()).orEmpty().toSet()
+        set(value) = prefs.edit { putStringSet(Key.MODULE_UPDATE_NOTIFIED, value) }
     var moduleFavorites: Set<String>
         get() = prefs.getStringSet(Key.MODULE_FAVORITES, emptySet()).orEmpty().toSet()
         set(value) = prefs.edit { putStringSet(Key.MODULE_FAVORITES, value) }

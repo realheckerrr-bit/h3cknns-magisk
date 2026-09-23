@@ -54,6 +54,9 @@
     <string name="settings_backup_exported">Settings backup saved</string>
     <string name="settings_backup_restored">Settings restored. Restarting the app...</string>
     <string name="settings_backup_failed">Could not read that backup file</string>
+    <string name="settings_module_updates_title">Module update notifications</string>
+    <string name="settings_module_updates_summary">Check installed modules in the background for new versions</string>
+    <string name="settings_module_updates_unavailable">Root access is required to check installed modules</string>
     <string name="lsposed_title">LSPosed</string>
     <string name="lsposed_summary">Open LSPosed Manager or browse compatible modules</string>
     <string name="lsposed_manager_detected">Ready</string>
@@ -296,6 +299,9 @@
     <string name="download_complete">Download complete</string>
     <string name="download_file_error">Error downloading file</string>
     <string name="magisk_update_title">h3cknn\'s Magisk update available!</string>
+    <string name="module_updates_title">Module updates available</string>
+    <string name="module_update_available_one">%1$s has an update ready</string>
+    <string name="module_updates_available_many">%1$d module updates are ready</string>
     <string name="updated_title">h3cknn\'s Magisk updated</string>
     <string name="updated_text">Tap to open app</string>
     <string name="su_notification_granted_title">Superuser Granted</string>

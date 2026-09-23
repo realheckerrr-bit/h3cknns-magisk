@@ -24,13 +24,14 @@ object Notifications {
 
     private const val APP_UPDATED_ID = 4
     private const val APP_UPDATE_AVAILABLE_ID = 5
+    private const val MODULE_UPDATES_AVAILABLE_ID = 6
 
     private const val UPDATE_CHANNEL = "update"
     private const val PROGRESS_CHANNEL = "progress"
     private const val UPDATED_CHANNEL = "updated"
     private const val SU_CHANNEL = "su_notification"
 
-    private val nextId = AtomicInteger(APP_UPDATE_AVAILABLE_ID)
+    private val nextId = AtomicInteger(MODULE_UPDATES_AVAILABLE_ID)
 
     fun setup() {
         AppContext.apply {
@@ -86,6 +87,33 @@ object Notifications {
                 .setContentIntent(intent)
 
             mgr.notify(APP_UPDATE_AVAILABLE_ID, builder.build())
+        }
+    }
+
+    fun moduleUpdatesAvailable(names: List<String>) {
+        if (names.isEmpty()) return
+        AppContext.apply {
+            val flag = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            val pending = PendingIntent.getActivity(this, 0, selfLaunchIntent(), flag)
+            val text = if (names.size == 1) {
+                getString(R.string.module_update_available_one, names.first())
+            } else {
+                getString(R.string.module_updates_available_many, names.size)
+            }
+            val builder = if (SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(this, UPDATE_CHANNEL)
+                    .setSmallIcon(getBitmap(R.drawable.ic_magisk_outline).toIcon())
+            } else {
+                Notification.Builder(this)
+                    .setPriority(Notification.PRIORITY_DEFAULT)
+                    .setSmallIcon(R.drawable.ic_magisk_outline)
+            }
+                .setContentTitle(getText(R.string.module_updates_title))
+                .setContentText(text)
+                .setStyle(Notification.BigTextStyle().bigText(names.joinToString()))
+                .setAutoCancel(true)
+                .setContentIntent(pending)
+            mgr.notify(MODULE_UPDATES_AVAILABLE_ID, builder.build())
         }
     }
 

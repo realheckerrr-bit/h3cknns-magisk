@@ -22,6 +22,7 @@ object ConfigBackup {
     private const val DOWNLOAD_DIR = "download_dir"
     private const val RAND_NAME = "random_package_name"
     private const val CHECK_UPDATES = "check_updates"
+    private const val CHECK_MODULE_UPDATES = "check_module_updates"
     private const val MODULE_FAVORITES = "module_favorites"
 
     fun export(): String {
@@ -39,6 +40,7 @@ object ConfigBackup {
                 put(DOWNLOAD_DIR, Config.downloadDir)
                 put(RAND_NAME, Config.randName)
                 put(CHECK_UPDATES, Config.checkUpdate)
+                put(CHECK_MODULE_UPDATES, Config.checkModuleUpdates)
                 put(MODULE_FAVORITES, favorites)
             })
         }.toString(2)
@@ -69,6 +71,7 @@ object ConfigBackup {
             val downloadDir = settings.optStringOrNull(DOWNLOAD_DIR)
             val randName = settings.optBooleanOrNull(RAND_NAME)
             val checkUpdates = settings.optBooleanOrNull(CHECK_UPDATES)
+            val checkModuleUpdates = settings.optBooleanOrNull(CHECK_MODULE_UPDATES)
 
             accentColor?.let { Config.accentColor = it }
             colorMode?.let { Config.colorMode = it }
@@ -78,6 +81,7 @@ object ConfigBackup {
             downloadDir?.let { Config.downloadDir = it }
             randName?.let { Config.randName = it }
             checkUpdates?.let { Config.checkUpdate = it }
+            checkModuleUpdates?.let { Config.checkModuleUpdates = it }
             favorites?.let { Config.moduleFavorites = it }
             true
         }.getOrDefault(false)

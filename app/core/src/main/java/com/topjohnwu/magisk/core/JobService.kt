@@ -13,9 +13,14 @@ import com.topjohnwu.magisk.core.di.ServiceLocator
 import com.topjohnwu.magisk.core.download.DownloadEngine
 import com.topjohnwu.magisk.core.download.DownloadSession
 import com.topjohnwu.magisk.core.download.Subject
+import com.topjohnwu.magisk.core.model.module.LocalModule
+import com.topjohnwu.magisk.core.model.module.OnlineModule
 import com.topjohnwu.magisk.view.Notifications
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
@@ -76,19 +81,59 @@ class JobService : BaseJobService() {
     @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
     private fun checkUpdate(params: JobParameters): Boolean {
         GlobalScope.launch(Dispatchers.IO) {
-            Info.fetchUpdate(ServiceLocator.networkService)?.let {
-                if (BuildConfig.MANAGER_VERSION_CODE < it.versionCode)
-                    Notifications.updateAvailable()
+            try {
+                if (Config.checkUpdate) {
+                    Info.fetchUpdate(ServiceLocator.networkService)?.let {
+                        if (BuildConfig.MANAGER_VERSION_CODE < it.versionCode) {
+                            Notifications.updateAvailable()
+                        }
+                    }
+                }
+                if (Config.checkModuleUpdates && Info.env.isActive) {
+                    checkModuleUpdates()
+                }
+            } finally {
                 jobFinished(params, false)
             }
         }
         return true
     }
 
+    private suspend fun checkModuleUpdates() {
+        val updates = coroutineScope {
+            LocalModule.installed().map { module ->
+                async {
+                    try {
+                        if (module.fetch() && module.outdated) module.updateInfo else null
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }.awaitAll().filterNotNull()
+        }
+        if (updates.isEmpty()) return
+
+        val freshUpdates = updates.filter { update ->
+            update.notificationKey !in Config.moduleUpdateNotified
+        }
+        val notified = Config.moduleUpdateNotified + updates.map { it.notificationKey }
+        Config.moduleUpdateNotified = if (notified.size > 200) {
+            updates.map { it.notificationKey }.toSet()
+        } else {
+            notified
+        }
+        if (freshUpdates.isNotEmpty()) {
+            Notifications.moduleUpdatesAvailable(freshUpdates.map { it.name })
+        }
+    }
+
+    private val OnlineModule.notificationKey: String
+        get() = "$id:$versionCode"
+
     companion object {
         fun schedule(context: Context) {
             val scheduler = context.getSystemService<JobScheduler>() ?: return
-            if (Config.checkUpdate) {
+            if (Config.checkUpdate || Config.checkModuleUpdates) {
                 val cmp = JobService::class.java.cmp(context.packageName)
                 val info = JobInfo.Builder(Const.ID.CHECK_UPDATE_JOB_ID, cmp)
                     .setPeriodic(TimeUnit.HOURS.toMillis(12))

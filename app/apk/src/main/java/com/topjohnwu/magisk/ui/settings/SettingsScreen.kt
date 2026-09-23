@@ -472,6 +472,30 @@ private fun AppSettingsSection(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
 
+        // Installed module update checker
+        var checkModuleUpdates by remember { mutableStateOf(Config.checkModuleUpdates) }
+        SettingsSwitch(
+            title = stringResource(CoreR.string.settings_module_updates_title),
+            summary = stringResource(
+                if (Info.env.isActive) {
+                    CoreR.string.settings_module_updates_summary
+                } else {
+                    CoreR.string.settings_module_updates_unavailable
+                },
+            ),
+            checked = checkModuleUpdates,
+            enabled = Info.env.isActive,
+            onCheckedChange = {
+                checkModuleUpdates = it
+                Config.checkModuleUpdates = it
+            },
+        )
+
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
+
         // Download Path
         var showDownloadDialog by remember { mutableStateOf(false) }
         if (showDownloadDialog) {
