@@ -35,6 +35,7 @@ import com.google.android.material.color.utilities.MaterialDynamicColors
 import com.google.android.material.color.utilities.SchemeTonalSpot
 import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.model.ColorMode
+import com.topjohnwu.magisk.core.R as CoreR
 
 @SuppressLint("RestrictedApi")
 fun dynamicColorScheme(
@@ -98,10 +99,24 @@ fun dynamicColorScheme(
     )
 }
 
-val MagiskAccentColor = Color(0xFF00AF9C)
+val MagiskAccentColor = Color(0xFF1A73E8)
+
+data class MagiskAccentOption(
+    val nameRes: Int,
+    val color: Color,
+)
+
+val MagiskAccentOptions = listOf(
+    MagiskAccentOption(CoreR.string.accent_blue, MagiskAccentColor),
+    MagiskAccentOption(CoreR.string.accent_purple, Color(0xFF6750A4)),
+    MagiskAccentOption(CoreR.string.accent_teal, Color(0xFF006A6A)),
+    MagiskAccentOption(CoreR.string.accent_rose, Color(0xFF8E4A60)),
+    MagiskAccentOption(CoreR.string.accent_gold, Color(0xFF725D00)),
+)
 
 object ThemeState {
     var colorMode by mutableIntStateOf(Config.colorMode)
+    var accentColor by mutableIntStateOf(Config.accentColor)
 }
 
 val MagiskShapes = Shapes(
@@ -194,12 +209,13 @@ fun MagiskTheme(
 
     val isDarkTheme = mode.isDark(isDark)
     val useDynamicColor = mode.isMonet && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val accentColor = Color(ThemeState.accentColor)
 
     val colorScheme = when {
         useDynamicColor && isDarkTheme -> dynamicDarkColorScheme(context)
         useDynamicColor && !isDarkTheme -> dynamicLightColorScheme(context)
-        isDarkTheme -> dynamicColorScheme(MagiskAccentColor, isDark = true)
-        else -> dynamicColorScheme(MagiskAccentColor, isDark = false)
+        isDarkTheme -> dynamicColorScheme(accentColor, isDark = true)
+        else -> dynamicColorScheme(accentColor, isDark = false)
     }
 
     // Keep Compose on the device's current density and font scale. This is

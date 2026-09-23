@@ -38,6 +38,14 @@
     <string name="settings_module_store_title">Open module store</string>
     <string name="settings_module_store_summary">Browse community repositories and review modules before installing</string>
     <string name="integrations">Integrations</string>
+    <string name="settings_accent_color">Accent color</string>
+    <string name="settings_accent_color_summary">Choose a flat Material palette for the fork UI</string>
+    <string name="settings_accent_color_system_summary">System dynamic color is active</string>
+    <string name="accent_blue">Pixel blue</string>
+    <string name="accent_purple">Purple</string>
+    <string name="accent_teal">Teal</string>
+    <string name="accent_rose">Rose</string>
+    <string name="accent_gold">Gold</string>
     <string name="lsposed_title">LSPosed</string>
     <string name="lsposed_summary">Open LSPosed Manager or browse compatible modules</string>
     <string name="lsposed_manager_detected">Ready</string>

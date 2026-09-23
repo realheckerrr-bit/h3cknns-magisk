@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -28,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Refresh
@@ -41,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -55,6 +63,7 @@ import com.topjohnwu.magisk.core.model.ColorMode
 import com.topjohnwu.magisk.core.utils.LocaleSetting
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils
 import com.topjohnwu.magisk.ui.ThemeState
+import com.topjohnwu.magisk.ui.MagiskAccentOptions
 import com.topjohnwu.magisk.ui.component.MagiskDialog
 import com.topjohnwu.magisk.ui.component.SettingsArrow
 import com.topjohnwu.magisk.ui.component.SettingsDropdown
@@ -297,6 +306,20 @@ private fun CustomizationSection(
             }
         )
 
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
+
+        AccentColorSelector(
+            enabled = !ColorMode.fromValue(colorMode).isMonet || !isDynamicColorSupported,
+            selectedColor = ThemeState.accentColor,
+            onColorSelected = { color ->
+                Config.accentColor = color
+                ThemeState.accentColor = color
+            },
+        )
+
         if (isRunningAsStub && ShortcutManagerCompat.isRequestPinShortcutSupported(context)) {
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -307,6 +330,86 @@ private fun CustomizationSection(
                 summary = stringResource(CoreR.string.setting_add_shortcut_summary),
                 onClick = { viewModel.requestAddShortcut() }
             )
+        }
+    }
+}
+
+@Composable
+private fun AccentColorSelector(
+    enabled: Boolean,
+    selectedColor: Int,
+    onColorSelected: (Int) -> Unit,
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(
+            text = stringResource(CoreR.string.settings_accent_color),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Text(
+            text = stringResource(
+                if (enabled) {
+                    CoreR.string.settings_accent_color_summary
+                } else {
+                    CoreR.string.settings_accent_color_system_summary
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            MagiskAccentOptions.forEach { option ->
+                val selected = option.color.toArgb() == selectedColor
+                Column(
+                    modifier = Modifier
+                        .clickable(enabled = enabled) {
+                            onColorSelected(option.color.toArgb())
+                        }
+                        .padding(horizontal = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(option.color, CircleShape)
+                            .then(
+                                if (selected) {
+                                    Modifier.border(
+                                        width = 3.dp,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        shape = CircleShape,
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (selected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(option.nameRes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (enabled) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        },
+                    )
+                }
+            }
         }
     }
 }
