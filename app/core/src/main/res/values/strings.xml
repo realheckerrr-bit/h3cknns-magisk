@@ -14,7 +14,6 @@
     <string name="module_store_sort_popular">Popular</string>
     <string name="module_store_sort_recent">Recently updated</string>
     <string name="module_store_sort_name">Name</string>
-    <string name="close">Close</string>
     <string name="module_store_root_ready">Root access is available. Downloads can be installed after they finish.</string>
     <string name="module_store_browse_only">Browsing works without root. You need root to install modules.</string>
     <string name="module_store_install">Install</string>
