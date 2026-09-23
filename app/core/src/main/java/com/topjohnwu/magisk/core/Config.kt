@@ -47,6 +47,7 @@ object Config : PreferenceConfig, DBConfig {
         const val ASKED_HOME = "asked_home"
         const val DOH = "doh"
         const val RAND_NAME = "rand_name"
+        const val MODULE_FAVORITES = "module_favorites"
 
         val NO_MIGRATION = setOf(ASKED_HOME, SU_REQUEST_TIMEOUT,
             SU_AUTO_RESPONSE, SU_REAUTH, SU_TAPJACK)
@@ -125,6 +126,9 @@ object Config : PreferenceConfig, DBConfig {
     var customChannelUrl by preference(Key.CUSTOM_CHANNEL, "")
     var downloadDir by preference(Key.DOWNLOAD_DIR, "")
     var randName by preference(Key.RAND_NAME, true)
+    var moduleFavorites: Set<String>
+        get() = prefs.getStringSet(Key.MODULE_FAVORITES, emptySet()).orEmpty().toSet()
+        set(value) = prefs.edit { putStringSet(Key.MODULE_FAVORITES, value) }
     var checkUpdate
         get() = checkUpdatePrefs
         set(value) {

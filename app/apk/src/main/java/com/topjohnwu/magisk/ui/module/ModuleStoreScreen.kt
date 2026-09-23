@@ -40,6 +40,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -197,6 +198,25 @@ fun ModuleStoreScreen(
                 )
             }
 
+            FilterChip(
+                selected = state.favoritesOnly,
+                onClick = { viewModel.setFavoritesOnly(!state.favoritesOnly) },
+                label = {
+                    Text(
+                        stringResource(
+                            if (state.favoritesOnly) {
+                                CoreR.string.module_store_show_all
+                            } else {
+                                CoreR.string.module_store_favorites
+                            },
+                        ),
+                    )
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Star, contentDescription = null)
+                },
+            )
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -235,6 +255,17 @@ fun ModuleStoreScreen(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
+                    if (state.favoriteIds.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            stringResource(
+                                CoreR.string.module_store_favorites_saved,
+                                state.favoriteIds.size,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
                     if (state.repositoryErrors.isNotEmpty()) {
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -266,7 +297,17 @@ fun ModuleStoreScreen(
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
-                    ) { Text(stringResource(CoreR.string.module_store_empty)) }
+                    ) {
+                        Text(
+                            stringResource(
+                                if (state.favoritesOnly) {
+                                    CoreR.string.module_store_no_favorites
+                                } else {
+                                    CoreR.string.module_store_empty
+                                },
+                            ),
+                        )
+                    }
                 }
                 else -> {
                     val listState = rememberLazyListState()
@@ -281,6 +322,8 @@ fun ModuleStoreScreen(
                         items(modules, key = { "${it.repositoryId}:${it.id}" }) { module ->
                             StoreModuleCard(
                                 module = module,
+                                favorite = viewModel.isFavorite(module),
+                                onToggleFavorite = { viewModel.toggleFavorite(module) },
                                 onOpenDetails = { selectedModule = module },
                             )
                         }
@@ -383,6 +426,8 @@ private fun SortSelector(
 @Composable
 private fun StoreModuleCard(
     module: StoreModule,
+    favorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onOpenDetails: () -> Unit,
 ) {
     Card(
@@ -427,11 +472,23 @@ private fun StoreModuleCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Icon(
-                    Icons.Default.OpenInNew,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                IconButton(onClick = onToggleFavorite) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = stringResource(
+                            if (favorite) {
+                                CoreR.string.module_store_remove_favorite
+                            } else {
+                                CoreR.string.module_store_add_favorite
+                            },
+                        ),
+                        tint = if (favorite) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                        },
+                    )
+                }
             }
             Spacer(Modifier.height(8.dp))
             Row(
@@ -480,6 +537,8 @@ private fun ModuleStoreDetailScreen(
     }
     var detailRequest by remember(module.id, module.repositoryId) { mutableIntStateOf(0) }
     var selectedScreenshot by remember { mutableStateOf<String?>(null) }
+    val storeState by viewModel.uiState.collectAsStateWithLifecycle()
+    val favorite = storeState.favoriteIds.contains("${module.repositoryId}::${module.id}")
     LaunchedEffect(module.id, module.repositoryId, detailRequest) {
         details = null
         detailError = null
@@ -536,6 +595,23 @@ private fun ModuleStoreDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.toggleFavorite(module) }) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = stringResource(
+                                if (favorite) {
+                                    CoreR.string.module_store_remove_favorite
+                                } else {
+                                    CoreR.string.module_store_add_favorite
+                                },
+                            ),
+                            tint = if (favorite) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
                     IconButton(onClick = onOpenSource) {
                         Icon(
                             Icons.Default.OpenInNew,

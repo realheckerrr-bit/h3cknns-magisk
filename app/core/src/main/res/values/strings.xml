@@ -14,6 +14,12 @@
     <string name="module_store_sort_popular">Popular</string>
     <string name="module_store_sort_recent">Recently updated</string>
     <string name="module_store_sort_name">Name</string>
+    <string name="module_store_favorites">Favorites</string>
+    <string name="module_store_show_all">Show all</string>
+    <string name="module_store_favorites_saved">%1$d saved modules</string>
+    <string name="module_store_no_favorites">You have no saved modules yet.</string>
+    <string name="module_store_add_favorite">Save module</string>
+    <string name="module_store_remove_favorite">Remove saved module</string>
     <string name="module_store_root_ready">Root access is available. Downloads can be installed after they finish.</string>
     <string name="module_store_browse_only">Browsing works without root. You need root to install modules.</string>
     <string name="module_store_install">Install</string>

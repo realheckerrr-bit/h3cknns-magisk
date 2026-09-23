@@ -2,6 +2,7 @@ package com.topjohnwu.magisk.ui.module
 
 import android.net.Uri
 import com.topjohnwu.magisk.arch.AsyncLoadViewModel
+import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.di.ServiceLocator
 import com.topjohnwu.magisk.core.download.Subject
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils
@@ -123,6 +124,8 @@ data class ModuleStoreState(
     val query: String = "",
     val selectedRepositoryId: String = ALL_MODULE_REPOSITORIES,
     val sort: ModuleSort = ModuleSort.POPULAR,
+    val favoritesOnly: Boolean = false,
+    val favoriteIds: Set<String> = Config.moduleFavorites,
     val modules: List<StoreModule> = emptyList(),
     val loadedRepositoryIds: Set<String> = emptySet(),
     val repositoryErrors: Map<String, String> = emptyMap(),
@@ -201,6 +204,21 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
         _uiState.update { it.copy(sort = sort) }
     }
 
+    fun setFavoritesOnly(enabled: Boolean) {
+        _uiState.update { it.copy(favoritesOnly = enabled) }
+    }
+
+    fun isFavorite(module: StoreModule): Boolean =
+        module.favoriteKey() in _uiState.value.favoriteIds
+
+    fun toggleFavorite(module: StoreModule) {
+        val key = module.favoriteKey()
+        val current = _uiState.value.favoriteIds
+        val next = if (key in current) current - key else current + key
+        Config.moduleFavorites = next
+        _uiState.update { it.copy(favoriteIds = next) }
+    }
+
     fun filteredModules(state: ModuleStoreState): List<StoreModule> {
         val query = state.query.trim()
         val sourceModules = if (state.selectedRepositoryId == ALL_MODULE_REPOSITORIES) {
@@ -208,10 +226,15 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
         } else {
             state.modules.filter { it.repositoryId == state.selectedRepositoryId }
         }
-        val filtered = if (query.isEmpty()) {
-            sourceModules
+        val favoriteFiltered = if (state.favoritesOnly) {
+            sourceModules.filter { it.favoriteKey() in state.favoriteIds }
         } else {
-            sourceModules.filter {
+            sourceModules
+        }
+        val filtered = if (query.isEmpty()) {
+            favoriteFiltered
+        } else {
+            favoriteFiltered.filter {
                 it.name.contains(query, ignoreCase = true) ||
                     it.id.contains(query, ignoreCase = true)
             }
@@ -230,6 +253,8 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
             ModuleSort.NAME -> filtered.sortedBy { it.name.lowercase() }
         }
     }
+
+    private fun StoreModule.favoriteKey(): String = "$repositoryId::$id"
 
     suspend fun loadDetails(module: StoreModule): StoreModuleDetails = withContext(Dispatchers.IO) {
         val readme = module.readmeUrl.takeIf(String::isNotBlank)?.let { url ->

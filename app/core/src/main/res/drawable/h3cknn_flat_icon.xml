@@ -7,28 +7,28 @@
 
     <!-- Flat geometric mask mark. The adaptive background supplies the color field. -->
     <path
-        android:fillColor="#E8DEF8"
+        android:fillColor="#E8F0FE"
         android:pathData="M54,14C38,14 25,22 21,36C24,61 30,82 43,94C47,98 51,101 54,103C57,101 61,98 65,94C78,82 84,61 87,36C83,22 70,14 54,14Z" />
     <path
-        android:fillColor="#4F378B"
+        android:fillColor="#1A73E8"
         android:pathData="M22,36C27,23 39,16 52,15L49,42L28,49Z" />
     <path
-        android:fillColor="#4F378B"
+        android:fillColor="#1A73E8"
         android:pathData="M86,36C81,23 69,16 56,15L59,42L80,49Z" />
     <path
-        android:fillColor="#1D1B20"
+        android:fillColor="#202124"
         android:pathData="M27,48C34,41 43,41 49,47C46,58 34,61 27,48Z" />
     <path
-        android:fillColor="#1D1B20"
+        android:fillColor="#202124"
         android:pathData="M59,47C65,41 74,41 81,48C74,61 62,58 59,47Z" />
     <path
-        android:fillColor="#6750A4"
+        android:fillColor="#5F6368"
         android:pathData="M50,18L54,57L58,18C56,16 52,16 50,18Z" />
     <path
-        android:fillColor="#6750A4"
+        android:fillColor="#5F6368"
         android:pathData="M29,68C37,62 46,63 54,70C62,63 71,62 79,68C74,80 63,85 54,78C45,85 34,80 29,68Z" />
     <path
-        android:fillColor="#D0BCFF"
+        android:fillColor="#8AB4F8"
         android:pathData="M48,78C50,80 52,81 54,81C56,81 58,80 60,78L59,96C57,99 56,100 54,101C52,100 51,99 49,96Z" />
     <path
         android:fillColor="#FFFFFF"
