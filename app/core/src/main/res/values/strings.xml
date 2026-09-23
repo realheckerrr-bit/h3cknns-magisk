@@ -46,6 +46,14 @@
     <string name="accent_teal">Teal</string>
     <string name="accent_rose">Rose</string>
     <string name="accent_gold">Gold</string>
+    <string name="settings_backup_title">Backup &amp; restore</string>
+    <string name="settings_backup_export">Export fork settings</string>
+    <string name="settings_backup_export_summary">Save theme, language, download path, and module favorites</string>
+    <string name="settings_backup_import">Import fork settings</string>
+    <string name="settings_backup_import_summary">Restore settings from a h3cknn Magisk backup file</string>
+    <string name="settings_backup_exported">Settings backup saved</string>
+    <string name="settings_backup_restored">Settings restored. Restarting the app...</string>
+    <string name="settings_backup_failed">Could not read that backup file</string>
     <string name="lsposed_title">LSPosed</string>
     <string name="lsposed_summary">Open LSPosed Manager or browse compatible modules</string>
     <string name="lsposed_manager_detected">Ready</string>

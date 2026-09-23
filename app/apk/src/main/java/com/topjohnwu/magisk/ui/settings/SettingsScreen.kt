@@ -1,6 +1,10 @@
 package com.topjohnwu.magisk.ui.settings
 
 import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
@@ -56,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.topjohnwu.magisk.core.Config
+import com.topjohnwu.magisk.core.ConfigBackup
 import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.isRunningAsStub
@@ -107,6 +112,8 @@ fun SettingsScreen(
             IntegrationsSection(onOpenModuleStore = onOpenModuleStore)
             Spacer(Modifier.height(16.dp))
             AppSettingsSection()
+            Spacer(Modifier.height(16.dp))
+            BackupSection()
             if (Info.env.isActive) {
                 Spacer(Modifier.height(16.dp))
                 MagiskSection(viewModel = viewModel)
@@ -495,6 +502,93 @@ private fun AppSettingsSection(
                 randName = it
                 Config.randName = it
             }
+        )
+    }
+}
+
+// --- Backup & restore ---
+
+@Composable
+private fun BackupSection(
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val activity = LocalActivity.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                val output = context.contentResolver.openOutputStream(uri)
+                    ?: error("Could not open the selected file")
+                output.bufferedWriter().use { it.write(ConfigBackup.export()) }
+            }.onSuccess {
+                Toast.makeText(
+                    context,
+                    CoreR.string.settings_backup_exported,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }.onFailure {
+                Toast.makeText(
+                    context,
+                    CoreR.string.settings_backup_failed,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                val serialized = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                    ?: error("Could not read the selected file")
+                if (!ConfigBackup.restore(serialized)) {
+                    error("Unsupported backup")
+                }
+            }.onSuccess {
+                ThemeState.colorMode = Config.colorMode
+                ThemeState.accentColor = Config.accentColor
+                Toast.makeText(
+                    context,
+                    CoreR.string.settings_backup_restored,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                activity?.recreate()
+            }.onFailure {
+                Toast.makeText(
+                    context,
+                    CoreR.string.settings_backup_failed,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    SmallTitle(text = stringResource(CoreR.string.settings_backup_title))
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        SettingsArrow(
+            title = stringResource(CoreR.string.settings_backup_export),
+            summary = stringResource(CoreR.string.settings_backup_export_summary),
+            onClick = { exportLauncher.launch("h3cknn-magisk-settings.json") },
+        )
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+        )
+        SettingsArrow(
+            title = stringResource(CoreR.string.settings_backup_import),
+            summary = stringResource(CoreR.string.settings_backup_import_summary),
+            onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
         )
     }
 }
