@@ -39,6 +39,12 @@ enum class ModuleRepositoryFormat {
     MMRL,
 }
 
+enum class ModuleSort {
+    POPULAR,
+    RECENT,
+    NAME,
+}
+
 data class ModuleRepository(
     val id: String,
     val name: String,
@@ -116,6 +122,7 @@ data class ModuleStoreState(
     val loading: Boolean = true,
     val query: String = "",
     val selectedRepositoryId: String = ALL_MODULE_REPOSITORIES,
+    val sort: ModuleSort = ModuleSort.POPULAR,
     val modules: List<StoreModule> = emptyList(),
     val loadedRepositoryIds: Set<String> = emptySet(),
     val repositoryErrors: Map<String, String> = emptyMap(),
@@ -190,6 +197,10 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
         _uiState.update { it.copy(selectedRepositoryId = repositoryId) }
     }
 
+    fun setSort(sort: ModuleSort) {
+        _uiState.update { it.copy(sort = sort) }
+    }
+
     fun filteredModules(state: ModuleStoreState): List<StoreModule> {
         val query = state.query.trim()
         val sourceModules = if (state.selectedRepositoryId == ALL_MODULE_REPOSITORIES) {
@@ -197,10 +208,26 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
         } else {
             state.modules.filter { it.repositoryId == state.selectedRepositoryId }
         }
-        if (query.isEmpty()) return sourceModules
-        return sourceModules.filter {
-            it.name.contains(query, ignoreCase = true) ||
-                it.id.contains(query, ignoreCase = true)
+        val filtered = if (query.isEmpty()) {
+            sourceModules
+        } else {
+            sourceModules.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                    it.id.contains(query, ignoreCase = true)
+            }
+        }
+        return when (state.sort) {
+            ModuleSort.POPULAR -> filtered.sortedWith(
+                compareByDescending<StoreModule> { it.stars }
+                    .thenByDescending { it.lastUpdate }
+                    .thenBy { it.name.lowercase() },
+            )
+            ModuleSort.RECENT -> filtered.sortedWith(
+                compareByDescending<StoreModule> { it.lastUpdate }
+                    .thenByDescending { it.stars }
+                    .thenBy { it.name.lowercase() },
+            )
+            ModuleSort.NAME -> filtered.sortedBy { it.name.lowercase() }
         }
     }
 

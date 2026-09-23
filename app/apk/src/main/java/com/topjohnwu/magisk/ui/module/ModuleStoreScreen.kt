@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -49,12 +51,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +67,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.R as CoreR
@@ -176,10 +182,20 @@ fun ModuleStoreScreen(
                 label = { Text(stringResource(CoreR.string.module_store_search)) },
             )
 
-            RepositorySelector(
-                selectedRepositoryId = state.selectedRepositoryId,
-                onSelect = viewModel::selectRepository,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RepositorySelector(
+                    selectedRepositoryId = state.selectedRepositoryId,
+                    onSelect = viewModel::selectRepository,
+                    modifier = Modifier.weight(1f),
+                )
+                SortSelector(
+                    selectedSort = state.sort,
+                    onSelect = viewModel::setSort,
+                )
+            }
 
             Card(
                 modifier = Modifier
@@ -279,6 +295,7 @@ fun ModuleStoreScreen(
 private fun RepositorySelector(
     selectedRepositoryId: String,
     onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedRepositoryName = MODULE_REPOSITORIES.firstOrNull {
@@ -286,7 +303,7 @@ private fun RepositorySelector(
     }?.name ?: stringResource(CoreR.string.module_store_all_repositories)
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = 2.dp),
     ) {
@@ -314,6 +331,48 @@ private fun RepositorySelector(
                     onClick = {
                         expanded = false
                         onSelect(repository.id)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SortSelector(
+    selectedSort: ModuleSort,
+    onSelect: (ModuleSort) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = when (selectedSort) {
+        ModuleSort.POPULAR -> CoreR.string.module_store_sort_popular
+        ModuleSort.RECENT -> CoreR.string.module_store_sort_recent
+        ModuleSort.NAME -> CoreR.string.module_store_sort_name
+    }
+
+    Box {
+        TextButton(onClick = { expanded = true }) {
+            Text(
+                text = stringResource(CoreR.string.module_store_sort, stringResource(label)),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            ModuleSort.entries.forEach { sort ->
+                val sortLabel = when (sort) {
+                    ModuleSort.POPULAR -> CoreR.string.module_store_sort_popular
+                    ModuleSort.RECENT -> CoreR.string.module_store_sort_recent
+                    ModuleSort.NAME -> CoreR.string.module_store_sort_name
+                }
+                DropdownMenuItem(
+                    text = { Text(stringResource(sortLabel)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(sort)
                     },
                 )
             }
@@ -413,9 +472,54 @@ private fun ModuleStoreDetailScreen(
     onOpenSource: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var details by remember(module.id) { mutableStateOf<StoreModuleDetails?>(null) }
-    LaunchedEffect(module.id, module.repositoryId) {
-        details = viewModel.loadDetails(module)
+    var details by remember(module.id, module.repositoryId) {
+        mutableStateOf<StoreModuleDetails?>(null)
+    }
+    var detailError by remember(module.id, module.repositoryId) {
+        mutableStateOf<String?>(null)
+    }
+    var detailRequest by remember(module.id, module.repositoryId) { mutableIntStateOf(0) }
+    var selectedScreenshot by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(module.id, module.repositoryId, detailRequest) {
+        details = null
+        detailError = null
+        runCatching { viewModel.loadDetails(module) }
+            .onSuccess { details = it }
+            .onFailure { detailError = it.message ?: "Unable to load module details" }
+    }
+
+    selectedScreenshot?.let { screenshotUrl ->
+        Dialog(
+            onDismissRequest = { selectedScreenshot = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f)),
+            ) {
+                RemoteModuleImage(
+                    urls = listOf(screenshotUrl),
+                    contentDescription = module.name,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                )
+                IconButton(
+                    onClick = { selectedScreenshot = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(CoreR.string.close),
+                        tint = Color.White,
+                    )
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -448,7 +552,16 @@ private fun ModuleStoreDetailScreen(
                     .fillMaxSize()
                     .padding(padding),
                 contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
+            ) {
+                if (detailError != null) {
+                    StoreError(
+                        message = detailError!!,
+                        onRetry = { detailRequest++ },
+                    )
+                } else {
+                    CircularProgressIndicator()
+                }
+            }
             return@Scaffold
         }
 
@@ -529,14 +642,20 @@ private fun ModuleStoreDetailScreen(
                     Spacer(Modifier.height(8.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(loaded.screenshotUrls, key = { it }) { url ->
-                            RemoteModuleImage(
-                                urls = listOf(url),
-                                contentDescription = module.name,
-                                contentScale = ContentScale.Crop,
+                            Box(
                                 modifier = Modifier
                                     .size(width = 250.dp, height = 160.dp)
                                     .clip(RoundedCornerShape(20.dp)),
-                            )
+                            ) {
+                                RemoteModuleImage(
+                                    urls = listOf(url),
+                                    contentDescription = module.name,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable { selectedScreenshot = url },
+                                )
+                            }
                         }
                     }
                 }
