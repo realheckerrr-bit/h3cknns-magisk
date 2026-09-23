@@ -302,6 +302,10 @@
     <string name="module_updates_title">Module updates available</string>
     <string name="module_update_available_one">%1$s has an update ready</string>
     <string name="module_updates_available_many">%1$d module updates are ready</string>
+    <string name="module_updates_background_enabled">Background module checks on</string>
+    <string name="module_updates_background_enabled_summary">New versions will appear here and can notify you.</string>
+    <string name="module_updates_background_disabled">Background module checks off</string>
+    <string name="module_updates_background_disabled_summary">Enable module update notifications in Settings for automatic checks.</string>
     <string name="updated_title">h3cknn\'s Magisk updated</string>
     <string name="updated_text">Tap to open app</string>
     <string name="su_notification_granted_title">Superuser Granted</string>

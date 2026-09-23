@@ -10,6 +10,7 @@ import android.os.Build.VERSION.SDK_INT
 import androidx.core.content.getSystemService
 import androidx.core.graphics.drawable.toIcon
 import com.topjohnwu.magisk.core.AppContext
+import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.R
 import com.topjohnwu.magisk.core.download.DownloadEngine
 import com.topjohnwu.magisk.core.download.Subject
@@ -94,7 +95,8 @@ object Notifications {
         if (names.isEmpty()) return
         AppContext.apply {
             val flag = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            val pending = PendingIntent.getActivity(this, 0, selfLaunchIntent(), flag)
+            val intent = selfLaunchIntent().putExtra(Const.Key.OPEN_SECTION, Const.Nav.MODULES)
+            val pending = PendingIntent.getActivity(this, 0, intent, flag)
             val text = if (names.size == 1) {
                 getString(R.string.module_update_available_one, names.first())
             } else {

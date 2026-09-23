@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -70,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.topjohnwu.magisk.R
+import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.di.ServiceLocator
 import com.topjohnwu.magisk.core.download.DownloadEngine
@@ -238,6 +240,7 @@ fun ModuleScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(Modifier.height(4.dp)) }
+            item { ModuleUpdateStatusCard() }
             items(
                 items = uiState.modules,
                 key = { it.module.id },
@@ -255,6 +258,54 @@ fun ModuleScreen(
                 )
             }
             item { Spacer(Modifier.height(4.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun ModuleUpdateStatusCard(modifier: Modifier = Modifier) {
+    val enabled = Config.checkModuleUpdates && Info.env.isActive
+    val title = stringResource(
+        if (enabled) CoreR.string.module_updates_background_enabled
+        else CoreR.string.module_updates_background_disabled
+    )
+    val summary = stringResource(
+        if (enabled) CoreR.string.module_updates_background_enabled_summary
+        else CoreR.string.module_updates_background_disabled_summary
+    )
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Notifications,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
