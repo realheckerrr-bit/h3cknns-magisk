@@ -115,15 +115,47 @@ public class DownloadActivity extends Activity {
         } else {
             request.getAsInputStream(input -> {
                 var session = APKInstall.startSession(this);
-                try (input; var out = session.openStream(this)) {
-                    if (out != null)
+                try (input) {
+                    var out = session.openStream(this);
+                    IOException failure = null;
+                    try {
                         APKInstall.transfer(input, out);
+                    } catch (IOException e) {
+                        failure = e;
+                        session.abandon(this);
+                    }
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        if (failure == null) {
+                            failure = e;
+                        } else {
+                            failure.addSuppressed(e);
+                        }
+                    }
+                    if (failure != null) {
+                        error(failure);
+                        return;
+                    }
+
+                    Intent intent = session.waitIntent();
+                    if (!session.isComplete()) {
+                        session.abandon(this);
+                        error(new IOException("Android did not finish installing the update"));
+                        return;
+                    }
+                    var message = session.failureMessage();
+                    if (message != null && !message.trim().isEmpty()) {
+                        error(new IOException("Android install failed: " + message));
+                        return;
+                    }
+                    if (intent != null)
+                        startActivity(intent);
                 } catch (IOException e) {
+                    session.abandon(this);
                     error(e);
+                    return;
                 }
-                Intent intent = session.waitIntent();
-                if (intent != null)
-                    startActivity(intent);
             });
         }
     }
