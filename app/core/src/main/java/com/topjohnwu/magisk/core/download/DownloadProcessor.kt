@@ -18,6 +18,7 @@ import org.apache.commons.compress.archivers.zip.ZipFile
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.Locale
 
 class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifier {
 
@@ -65,9 +66,27 @@ class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifi
             val session = APKInstall.startSession(context)
             stream.copyAndClose(TeeOutputStream(external, session.openStream(context)))
             subject.intent = session.waitIntent()
-            session.failureMessage()?.takeIf { it.isNotBlank() }?.let {
-                throw IOException(it)
+            if (!session.isComplete) {
+                throw IOException(context.getString(R.string.app_update_timeout))
             }
+            session.failureMessage()?.takeIf { it.isNotBlank() }?.let {
+                throw IOException(context.appInstallFailure(it))
+            }
+        }
+    }
+
+    private fun Context.appInstallFailure(message: String): String {
+        val normalized = message.lowercase(Locale.ROOT)
+        return when {
+            "signature" in normalized || "update_incompatible" in normalized ->
+                getString(R.string.app_update_signature_mismatch)
+            "version_downgrade" in normalized || "downgrade" in normalized ->
+                getString(R.string.app_update_version_downgrade)
+            "storage" in normalized || "no_space" in normalized ->
+                getString(R.string.app_update_storage)
+            "blocked" in normalized || "user_restricted" in normalized ->
+                getString(R.string.app_update_blocked)
+            else -> message
         }
     }
 

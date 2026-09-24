@@ -299,6 +299,11 @@
     <string name="download_complete">Download complete</string>
     <string name="download_file_error">Error downloading file</string>
     <string name="download_file_error_detail">Download or install failed: %1$s</string>
+    <string name="app_update_signature_mismatch">This update is signed with a different key. Uninstall the old app once, then install the latest release.</string>
+    <string name="app_update_version_downgrade">This update is older than the installed app. Install a newer release.</string>
+    <string name="app_update_storage">There is not enough storage to install this update.</string>
+    <string name="app_update_blocked">Android blocked this update. Allow installs from this source, then try again.</string>
+    <string name="app_update_timeout">Android did not finish installing the update in time. Check the system installer and try again.</string>
     <string name="magisk_update_title">h3cknn\'s Magisk update available!</string>
     <string name="module_updates_title">Module updates available</string>
     <string name="module_update_available_one">%1$s has an update ready</string>

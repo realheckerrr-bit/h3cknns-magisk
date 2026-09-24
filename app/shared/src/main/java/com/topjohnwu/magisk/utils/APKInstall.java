@@ -70,6 +70,8 @@ public final class APKInstall {
         OutputStream openStream(Context context) throws IOException;
         // @WorkerThread @Nullable
         Intent waitIntent();
+        // @WorkerThread
+        boolean isComplete();
         // @WorkerThread @Nullable
         String failureMessage();
     }
@@ -81,6 +83,7 @@ public final class APKInstall {
         private final CountDownLatch latch = new CountDownLatch(1);
         private Intent userAction = null;
         private volatile String failureMessage = null;
+        private volatile boolean complete = false;
 
         final String sessionId = UUID.randomUUID().toString();
 
@@ -127,6 +130,7 @@ public final class APKInstall {
                         }
                     }
                 }
+                complete = true;
                 latch.countDown();
             }
         }
@@ -144,9 +148,14 @@ public final class APKInstall {
         public Intent waitIntent() {
             try {
                 // noinspection ResultOfMethodCallIgnored
-                latch.await(5, TimeUnit.SECONDS);
+                latch.await(30, TimeUnit.SECONDS);
             } catch (Exception ignored) {}
             return userAction;
+        }
+
+        @Override
+        public boolean isComplete() {
+            return complete;
         }
 
         @Override
