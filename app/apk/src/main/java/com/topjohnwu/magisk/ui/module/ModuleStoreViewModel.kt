@@ -257,10 +257,11 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
     private fun StoreModule.favoriteKey(): String = "$repositoryId::$id"
 
     suspend fun loadDetails(module: StoreModule): StoreModuleDetails = withContext(Dispatchers.IO) {
-        val readme = module.readmeUrl.takeIf(String::isNotBlank)?.let { url ->
+        val readmeUrl = normalizeGithubContentUrl(module.readmeUrl)
+        val readme = readmeUrl.takeIf(String::isNotBlank)?.let { url ->
             runCatching { ServiceLocator.networkService.fetchString(url) }.getOrDefault("")
         }.orEmpty()
-        val readmeImages = extractImageUrls(readme, module.readmeUrl)
+        val readmeImages = extractImageUrls(readme, readmeUrl)
         val iconUrls = (module.iconUrls + readmeImages.filter(::isLikelyIcon))
             .distinct()
         val screenshotUrls = readmeImages
@@ -459,9 +460,23 @@ class ModuleStoreViewModel : AsyncLoadViewModel() {
     private fun resolveUrl(baseUrl: String, url: String): String? {
         if (url.startsWith("data:") || url.startsWith("//")) return null
         return runCatching {
-            if (url.startsWith("http://") || url.startsWith("https://")) url
-            else URI(baseUrl).resolve(url).toString()
+            val resolved = if (url.startsWith("http://") || url.startsWith("https://")) {
+                url
+            } else {
+                URI(baseUrl).resolve(url).toString()
+            }
+            normalizeGithubContentUrl(resolved)
         }.getOrNull()
+    }
+
+    /** Convert GitHub HTML blob links to raw file URLs so Markdown and images can be fetched. */
+    private fun normalizeGithubContentUrl(url: String): String {
+        val match = Regex(
+            "^https?://github\\.com/([^/]+)/([^/]+)/(?:blob|raw)/([^/]+)/(.*)$",
+            RegexOption.IGNORE_CASE,
+        ).matchEntire(url) ?: return url
+        return "https://raw.githubusercontent.com/${match.groupValues[1]}/" +
+            "${match.groupValues[2]}/${match.groupValues[3]}/${match.groupValues[4]}"
     }
 
     private fun githubRepositoryUrl(url: String): String? {
