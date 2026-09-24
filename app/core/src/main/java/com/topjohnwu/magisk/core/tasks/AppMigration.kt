@@ -285,12 +285,35 @@ object AppMigration {
         val pkg = context.packageName
         val session = APKInstall.startSession(context)
         return withContext(Dispatchers.IO) {
-            session.openStream(context).use {
-                if (!patch(context, apk, it, pkg, label)) {
+            var output: OutputStream? = null
+            try {
+                val installer = session.openStream(context)
+                output = installer
+                val patched = patch(context, apk, installer, pkg, label)
+                if (!patched) {
+                    session.abandon(context)
+                }
+                installer.close()
+                output = null
+                if (!patched) {
                     return@withContext null
                 }
+
+                val intent = session.waitIntent()
+                if (!session.isComplete) {
+                    session.abandon(context)
+                    throw IOException(context.getString(R.string.app_update_timeout))
+                }
+                session.failureMessage()?.takeIf { it.isNotBlank() }?.let {
+                    throw IOException("Android install failed: $it")
+                }
+                intent
+            } catch (e: Exception) {
+                if (!session.isComplete) session.abandon(context)
+                throw e
+            } finally {
+                output?.close()
             }
-            session.waitIntent()
         }
     }
 }

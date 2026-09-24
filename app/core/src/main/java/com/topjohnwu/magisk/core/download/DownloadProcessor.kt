@@ -32,13 +32,17 @@ class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifi
     }
 
     suspend fun handleApp(stream: InputStream, subject: Subject.App) {
-        val external = subject.file.outputStream()
-
         if (isRunningAsStub) {
             val updateApk = StubApk.update(context)
             try {
                 // Download full APK to stub update path
-                stream.copyAndClose(TeeOutputStream(external, updateApk.outputStream()))
+                subject.file.outputStream().use { external ->
+                    updateApk.outputStream().use { update ->
+                        stream.use { input ->
+                            input.copyAll(TeeOutputStream(external, update))
+                        }
+                    }
+                }
 
                 // Also upgrade stub
                 notifyUpdate(subject.notifyId) {
@@ -65,8 +69,17 @@ class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifi
             }
         } else {
             val session = APKInstall.startSession(context)
+            var installerStream: OutputStream? = null
             try {
-                stream.copyAndClose(TeeOutputStream(external, session.openStream(context)))
+                val installer = session.openStream(context)
+                installerStream = installer
+                subject.file.outputStream().use { external ->
+                    stream.use { input ->
+                        input.copyAll(TeeOutputStream(external, installer))
+                    }
+                }
+                installer.close()
+                installerStream = null
                 subject.intent = session.waitIntent()
                 if (!session.isComplete) {
                     session.abandon(context)
@@ -78,6 +91,15 @@ class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifi
             } catch (e: Exception) {
                 if (!session.isComplete) session.abandon(context)
                 throw e
+            } finally {
+                installerStream?.let { stream ->
+                    try {
+                        stream.close()
+                    } catch (e: IOException) {
+                        if (!session.isComplete) session.abandon(context)
+                        throw e
+                    }
+                }
             }
         }
     }

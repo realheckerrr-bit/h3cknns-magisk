@@ -86,6 +86,7 @@ public final class APKInstall {
         private volatile String failureMessage = null;
         private volatile boolean complete = false;
         private volatile int installerSessionId = -1;
+        private volatile boolean abandoned = false;
 
         final String sessionId = UUID.randomUUID().toString();
 
@@ -154,6 +155,7 @@ public final class APKInstall {
 
         @Override
         public void abandon(Context context) {
+            abandoned = true;
             int id = installerSessionId;
             if (id >= 0) {
                 var installer = context.getPackageManager().getPackageInstaller();
@@ -166,6 +168,7 @@ public final class APKInstall {
                 context.getApplicationContext().unregisterReceiver(this);
             } catch (IllegalArgumentException ignored) {
             }
+            complete = true;
         }
 
         @Override
@@ -195,9 +198,14 @@ public final class APKInstall {
                 }
                 @Override
                 public void close() throws IOException {
-                    super.close();
-                    session.commit(pending.getIntentSender());
-                    session.close();
+                    try {
+                        super.close();
+                        if (!abandoned) {
+                            session.commit(pending.getIntentSender());
+                        }
+                    } finally {
+                        session.close();
+                    }
                 }
             };
         }
