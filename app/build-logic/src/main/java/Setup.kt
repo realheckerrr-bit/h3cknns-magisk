@@ -18,6 +18,7 @@ import org.gradle.kotlin.dsl.filter
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.register
 import java.io.File
+import java.io.IOException
 import java.net.URI
 import java.security.MessageDigest
 import java.util.HexFormat
@@ -82,19 +83,44 @@ fun Project.setupCommon() {
 
 private fun Project.downloadFile(url: String, checksum: String): File {
     val file = layout.buildDirectory.file(checksum).get().asFile
-    if (file.exists()) {
+    fun isValid(candidate: File): Boolean {
+        if (!candidate.exists()) return false
         val md = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { md.update(it.readAllBytes()) }
-        val hash = HexFormat.of().formatHex(md.digest())
-        if (hash != checksum) {
-            file.delete()
+        candidate.inputStream().use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                if (read > 0) md.update(buffer, 0, read)
+            }
         }
+        return HexFormat.of().formatHex(md.digest()) == checksum
     }
+
+    if (!isValid(file)) file.delete()
     if (!file.exists()) {
         file.parentFile.mkdirs()
-        URI(url).toURL().openStream().use { dl ->
-            file.outputStream().use {
-                dl.copyTo(it)
+        for (attempt in 1..3) {
+            val partial = File(file.parentFile, "${file.name}.part")
+            try {
+                partial.delete()
+                val connection = URI(url).toURL().openConnection().apply {
+                    connectTimeout = 30_000
+                    readTimeout = 120_000
+                }
+                connection.getInputStream().use { dl ->
+                    partial.outputStream().use { output -> dl.copyTo(output) }
+                }
+                if (!isValid(partial)) {
+                    throw IOException("Checksum mismatch while downloading $url")
+                }
+                partial.copyTo(file, overwrite = true)
+                partial.delete()
+                return file
+            } catch (e: Exception) {
+                partial.delete()
+                if (attempt == 3) throw e
+                Thread.sleep(attempt * 1_000L)
             }
         }
     }
