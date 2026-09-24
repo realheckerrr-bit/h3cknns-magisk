@@ -1,5 +1,6 @@
 package com.topjohnwu.magisk.core.download
 
+import android.content.Context
 import android.net.Uri
 import com.topjohnwu.magisk.StubApk
 import com.topjohnwu.magisk.core.R
