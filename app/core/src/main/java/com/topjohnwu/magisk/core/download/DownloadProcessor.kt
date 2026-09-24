@@ -65,6 +65,9 @@ class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifi
             val session = APKInstall.startSession(context)
             stream.copyAndClose(TeeOutputStream(external, session.openStream(context)))
             subject.intent = session.waitIntent()
+            session.failureMessage()?.takeIf { it.isNotBlank() }?.let {
+                throw IOException(it)
+            }
         }
     }
 

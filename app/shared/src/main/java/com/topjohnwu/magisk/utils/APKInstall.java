@@ -2,6 +2,7 @@ package com.topjohnwu.magisk.utils;
 
 import static android.content.pm.PackageInstaller.EXTRA_SESSION_ID;
 import static android.content.pm.PackageInstaller.EXTRA_STATUS;
+import static android.content.pm.PackageInstaller.EXTRA_STATUS_MESSAGE;
 import static android.content.pm.PackageInstaller.STATUS_FAILURE_INVALID;
 import static android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION;
 import static android.content.pm.PackageInstaller.STATUS_SUCCESS;
@@ -69,6 +70,8 @@ public final class APKInstall {
         OutputStream openStream(Context context) throws IOException;
         // @WorkerThread @Nullable
         Intent waitIntent();
+        // @WorkerThread @Nullable
+        String failureMessage();
     }
 
     private static class InstallReceiver extends BroadcastReceiver implements Session {
@@ -77,6 +80,7 @@ public final class APKInstall {
         private final Runnable onFailure;
         private final CountDownLatch latch = new CountDownLatch(1);
         private Intent userAction = null;
+        private volatile String failureMessage = null;
 
         final String sessionId = UUID.randomUUID().toString();
 
@@ -107,6 +111,7 @@ public final class APKInstall {
                         }
                     }
                     default -> {
+                        failureMessage = intent.getStringExtra(EXTRA_STATUS_MESSAGE);
                         int id = intent.getIntExtra(EXTRA_SESSION_ID, 0);
                         var installer = context.getPackageManager().getPackageInstaller();
                         try {
@@ -142,6 +147,11 @@ public final class APKInstall {
                 latch.await(5, TimeUnit.SECONDS);
             } catch (Exception ignored) {}
             return userAction;
+        }
+
+        @Override
+        public String failureMessage() {
+            return failureMessage;
         }
 
         @Override

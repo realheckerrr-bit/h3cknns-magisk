@@ -298,6 +298,7 @@
     <string name="su_notification_channel">Superuser Notifications</string>
     <string name="download_complete">Download complete</string>
     <string name="download_file_error">Error downloading file</string>
+    <string name="download_file_error_detail">Download or install failed: %1$s</string>
     <string name="magisk_update_title">h3cknn\'s Magisk update available!</string>
     <string name="module_updates_title">Module updates available</string>
     <string name="module_update_available_one">%1$s has an update ready</string>

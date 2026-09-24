@@ -160,7 +160,7 @@ class DownloadEngine(session: DownloadSession) : DownloadSession by session, Dow
                 }
             } catch (e: Exception) {
                 Timber.e(e)
-                notifyFail(subject)
+                notifyFail(subject, e)
             }
         }
     }
@@ -183,9 +183,13 @@ class DownloadEngine(session: DownloadSession) : DownloadSession by session, Dow
         return newId
     }
 
-    private fun notifyFail(subject: Subject) = finalNotify(subject.notifyId) {
+    private fun notifyFail(subject: Subject, error: Throwable? = null) = finalNotify(subject.notifyId) {
         broadcast(-2f, subject)
-        it.setContentText(context.getString(R.string.download_file_error))
+        val detail = error?.message?.replace(Regex("\\s+"), " ")?.trim()?.take(180)
+        it.setContentText(
+            if (detail.isNullOrEmpty()) context.getString(R.string.download_file_error)
+            else context.getString(R.string.download_file_error_detail, detail)
+        )
             .setSmallIcon(android.R.drawable.stat_notify_error)
             .setOngoing(false)
     }

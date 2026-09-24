@@ -29,6 +29,46 @@ jobs:
         with:
           is-asset-build: true
 
+      - name: Configure persistent release signing
+        if: ${{ github.event_name != 'pull_request' }}
+        shell: bash
+        env:
+          H3CKNN_RELEASE_KEYSTORE_BASE64: ${{ secrets.H3CKNN_RELEASE_KEYSTORE_BASE64 }}
+          H3CKNN_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.H3CKNN_RELEASE_KEYSTORE_PASSWORD }}
+          H3CKNN_RELEASE_KEY_ALIAS: ${{ secrets.H3CKNN_RELEASE_KEY_ALIAS }}
+          H3CKNN_RELEASE_KEY_PASSWORD: ${{ secrets.H3CKNN_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$H3CKNN_RELEASE_KEYSTORE_BASE64" ]; then
+            echo "::error::Persistent release signing is required for published builds."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          Path("release.keystore").write_bytes(
+              base64.b64decode(os.environ["H3CKNN_RELEASE_KEYSTORE_BASE64"])
+          )
+          PY
+          {
+            echo "keyStore=$GITHUB_WORKSPACE/release.keystore"
+            echo "keyStorePass=$H3CKNN_RELEASE_KEYSTORE_PASSWORD"
+            echo "keyAlias=$H3CKNN_RELEASE_KEY_ALIAS"
+            echo "keyPass=$H3CKNN_RELEASE_KEY_PASSWORD"
+          } >> app/gradle.properties
+
+      - name: Verify persistent release signing
+        if: ${{ github.event_name != 'pull_request' }}
+        shell: bash
+        env:
+          H3CKNN_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.H3CKNN_RELEASE_KEYSTORE_PASSWORD }}
+          H3CKNN_RELEASE_KEY_ALIAS: ${{ secrets.H3CKNN_RELEASE_KEY_ALIAS }}
+        run: |
+          keytool -list -keystore release.keystore \
+            -storepass "$H3CKNN_RELEASE_KEYSTORE_PASSWORD" \
+            -alias "$H3CKNN_RELEASE_KEY_ALIAS" >/dev/null
+
       - name: Build release
         run: ./build.py -vr all
 
