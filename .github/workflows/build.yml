@@ -56,7 +56,7 @@ jobs:
             echo "keyStorePass=$H3CKNN_RELEASE_KEYSTORE_PASSWORD"
             echo "keyAlias=$H3CKNN_RELEASE_KEY_ALIAS"
             echo "keyPass=$H3CKNN_RELEASE_KEY_PASSWORD"
-          } >> app/gradle.properties
+          } >> config.prop
 
       - name: Verify persistent release signing
         if: ${{ github.event_name != 'pull_request' }}
