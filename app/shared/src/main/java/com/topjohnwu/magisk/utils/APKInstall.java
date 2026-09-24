@@ -1,6 +1,5 @@
 package com.topjohnwu.magisk.utils;
 
-import static android.content.pm.PackageInstaller.EXTRA_SESSION_ID;
 import static android.content.pm.PackageInstaller.EXTRA_STATUS;
 import static android.content.pm.PackageInstaller.EXTRA_STATUS_MESSAGE;
 import static android.content.pm.PackageInstaller.STATUS_FAILURE_INVALID;
@@ -72,6 +71,8 @@ public final class APKInstall {
         Intent waitIntent();
         // @WorkerThread
         boolean isComplete();
+        // @WorkerThread
+        void abandon(Context context);
         // @WorkerThread @Nullable
         String failureMessage();
     }
@@ -84,6 +85,7 @@ public final class APKInstall {
         private Intent userAction = null;
         private volatile String failureMessage = null;
         private volatile boolean complete = false;
+        private volatile int installerSessionId = -1;
 
         final String sessionId = UUID.randomUUID().toString();
 
@@ -115,18 +117,9 @@ public final class APKInstall {
                     }
                     default -> {
                         failureMessage = intent.getStringExtra(EXTRA_STATUS_MESSAGE);
-                        int id = intent.getIntExtra(EXTRA_SESSION_ID, 0);
-                        var installer = context.getPackageManager().getPackageInstaller();
-                        try {
-                            installer.abandonSession(id);
-                        } catch (SecurityException ignored) {
-                        }
+                        abandon(context);
                         if (onFailure != null) {
                             onFailure.run();
-                        }
-                        try {
-                            context.getApplicationContext().unregisterReceiver(this);
-                        } catch (IllegalArgumentException ignored) {
                         }
                     }
                 }
@@ -142,6 +135,7 @@ public final class APKInstall {
                 context.getApplicationContext().unregisterReceiver(this);
             } catch (IllegalArgumentException ignored) {
             }
+            complete = true;
         }
 
         @Override
@@ -156,6 +150,22 @@ public final class APKInstall {
         @Override
         public boolean isComplete() {
             return complete;
+        }
+
+        @Override
+        public void abandon(Context context) {
+            int id = installerSessionId;
+            if (id >= 0) {
+                var installer = context.getPackageManager().getPackageInstaller();
+                try {
+                    installer.abandonSession(id);
+                } catch (SecurityException ignored) {
+                }
+            }
+            try {
+                context.getApplicationContext().unregisterReceiver(this);
+            } catch (IllegalArgumentException ignored) {
+            }
         }
 
         @Override
@@ -175,7 +185,8 @@ public final class APKInstall {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 params.setRequireUserAction(SessionParams.USER_ACTION_NOT_REQUIRED);
             }
-            var session = installer.openSession(installer.createSession(params));
+            installerSessionId = installer.createSession(params);
+            var session = installer.openSession(installerSessionId);
             var out = session.openWrite(sessionId, 0, -1);
             return new FilterOutputStream(out) {
                 @Override

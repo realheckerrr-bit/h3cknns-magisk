@@ -65,13 +65,19 @@ class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifi
             }
         } else {
             val session = APKInstall.startSession(context)
-            stream.copyAndClose(TeeOutputStream(external, session.openStream(context)))
-            subject.intent = session.waitIntent()
-            if (!session.isComplete) {
-                throw IOException(context.getString(R.string.app_update_timeout))
-            }
-            session.failureMessage()?.takeIf { it.isNotBlank() }?.let {
-                throw IOException(context.appInstallFailure(it))
+            try {
+                stream.copyAndClose(TeeOutputStream(external, session.openStream(context)))
+                subject.intent = session.waitIntent()
+                if (!session.isComplete) {
+                    session.abandon(context)
+                    throw IOException(context.getString(R.string.app_update_timeout))
+                }
+                session.failureMessage()?.takeIf { it.isNotBlank() }?.let {
+                    throw IOException(context.appInstallFailure(it))
+                }
+            } catch (e: Exception) {
+                if (!session.isComplete) session.abandon(context)
+                throw e
             }
         }
     }
