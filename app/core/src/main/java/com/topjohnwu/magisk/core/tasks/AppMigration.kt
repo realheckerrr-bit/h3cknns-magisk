@@ -296,7 +296,7 @@ object AppMigration {
                 installer.close()
                 output = null
                 if (!patched) {
-                    return@withContext null
+                    throw IOException("HideAPK patch error")
                 }
 
                 val intent = session.waitIntent()

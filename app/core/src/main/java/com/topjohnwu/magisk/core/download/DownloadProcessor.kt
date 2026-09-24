@@ -60,7 +60,6 @@ class DownloadProcessor(notifier: DownloadNotifier) : DownloadNotifier by notifi
 
                 // Patch and install
                 subject.intent = AppMigration.upgradeStub(context, apk)
-                    ?: throw IOException("HideAPK patch error")
                 apk.delete()
             } catch (e: Exception) {
                 // If any error occurred, do not let stub load the new APK
