@@ -1,23 +1,13 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# Get the latest sccache release tag.
-get_sccache_tag() {
-  curl -fsSL \
-    -H 'Accept: application/vnd.github+json' \
-    'https://api.github.com/repos/mozilla/sccache/releases/latest' |
-    jq -er .tag_name
-}
+# Keep the toolchain deterministic and avoid GitHub API rate limits on hosted runners.
+SCCACHE_VERSION="${SCCACHE_VERSION:-v0.18.0}"
 
 get_sccache_asset_url() {
   local variant="$1"
   local archive="$2"
-  local tag
-  tag=$(get_sccache_tag)
-  curl -fsSL \
-    -H 'Accept: application/vnd.github+json' \
-    'https://api.github.com/repos/mozilla/sccache/releases/latest' |
-    jq -er --arg name "sccache-${tag}-${variant}.${archive}" \
-      '.assets[] | select(.name == $name) | .browser_download_url'
+  echo "https://github.com/mozilla/sccache/releases/download/${SCCACHE_VERSION}/sccache-${SCCACHE_VERSION}-${variant}.${archive}"
 }
 
 # $1=variant
