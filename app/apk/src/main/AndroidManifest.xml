@@ -6,6 +6,11 @@
         android:anyDensity="true"
         android:resizeable="true" />
 
+    <queries>
+        <package android:name="org.lsposed.manager" />
+        <package android:name="org.meowcat.edxposed.manager" />
+    </queries>
+
     <application android:localeConfig="@xml/locale_config">
         <activity
             android:name=".ui.MainActivity"

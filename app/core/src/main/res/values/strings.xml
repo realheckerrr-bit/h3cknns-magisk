@@ -197,6 +197,7 @@
     <string name="module_version_author">%1$s by %2$s</string>
     <string name="module_state_remove">Remove</string>
     <string name="module_action">Action</string>
+    <string name="module_open">Open</string>
     <string name="module_state_restore">Restore</string>
     <string name="module_action_install_external">Install from storage</string>
     <string name="update_available">Update available</string>

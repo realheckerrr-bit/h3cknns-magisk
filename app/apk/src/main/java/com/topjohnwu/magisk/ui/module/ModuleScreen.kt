@@ -1,6 +1,10 @@
 package com.topjohnwu.magisk.ui.module
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -29,6 +33,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Storefront
@@ -320,8 +325,12 @@ private fun ModuleCard(
     val infoAlpha = if (!item.isRemoved && item.isEnabled && !item.showNotice) 1f else 0.5f
     val strikeThrough = if (item.isRemoved) TextDecoration.LineThrough else TextDecoration.None
     val colorScheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
     var expanded by rememberSaveable(item.module.id) { mutableStateOf(false) }
     val hasDescription = item.module.description.isNotBlank()
+    val managerIntent = remember(item.module.id, item.module.name) {
+        findModuleManagerIntent(context, item.module.id, item.module.name)
+    }
 
     Card(
         onClick = { expanded = !expanded },
@@ -407,7 +416,27 @@ private fun ModuleCard(
                     exit = fadeOut()
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (item.showAction) {
+                        if (managerIntent != null) {
+                            FilledTonalButton(
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                                onClick = { openModuleManager(context, managerIntent) },
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Icon(
+                                        modifier = Modifier.size(18.dp),
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = stringResource(CoreR.string.module_open),
+                                    )
+                                    Text(
+                                        text = stringResource(CoreR.string.module_open),
+                                        style = MaterialTheme.typography.labelLarge,
+                                    )
+                                }
+                            }
+                        } else if (item.showAction) {
                             FilledTonalButton(
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                                 onClick = { viewModel.runAction(item.module.id, item.module.name) },
@@ -497,6 +526,30 @@ private fun ModuleCard(
                 }
             }
         }
+    }
+}
+
+private fun findModuleManagerIntent(context: Context, id: String, name: String): Intent? {
+    val identity = "$id $name".lowercase()
+    val packageNames = when {
+        "lsposed" in identity -> listOf("org.lsposed.manager")
+        "edxposed" in identity -> listOf("org.meowcat.edxposed.manager")
+        else -> emptyList()
+    }
+    return packageNames.asSequence()
+        .mapNotNull { packageName ->
+            context.packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        }
+        .firstOrNull()
+}
+
+private fun openModuleManager(context: Context, intent: Intent) {
+    try {
+        context.startActivity(intent)
+    } catch (_: ActivityNotFoundException) {
+        Toast.makeText(context, CoreR.string.open_link_failed_toast, Toast.LENGTH_SHORT).show()
     }
 }
 
